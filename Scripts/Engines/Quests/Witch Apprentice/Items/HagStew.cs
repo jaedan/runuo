@@ -1,12 +1,11 @@
 using System;
-using Server;
 
 namespace Server.Items
 {
-	public class HagStew : BaseAddon
-	{
+    public class HagStew : BaseAddon
+    {
 
-		[Constructable]
+        [Constructable]
         public HagStew()
         {
             AddonComponent stew;
@@ -46,7 +45,7 @@ namespace Server.Items
 
             protected override void OnTick()
             {
-                if ( stew.Visible == false )
+                if (stew.Visible == false)
                 {
                     Stop();
                     stew.Visible = true;
@@ -55,22 +54,22 @@ namespace Server.Items
             }
         }
 
-		public HagStew( Serial serial ) : base( serial )
-		{
-		}
+        public HagStew(Serial serial) : base(serial)
+        {
+        }
 
-		public override void Serialize( GenericWriter writer )
-		{
-			base.Serialize( writer );
+        public override void Serialize(GenericWriter writer)
+        {
+            base.Serialize(writer);
 
-			writer.Write( (int) 0 ); // version
-		}
+            writer.Write((int)0); // version
+        }
 
-		public override void Deserialize( GenericReader reader )
-		{
-			base.Deserialize( reader );
+        public override void Deserialize(GenericReader reader)
+        {
+            base.Deserialize(reader);
 
-			int version = reader.ReadInt();
-		}
-	}
+            int version = reader.ReadInt();
+        }
+    }
 }

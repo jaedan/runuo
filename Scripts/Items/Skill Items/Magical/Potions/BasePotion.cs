@@ -1,275 +1,274 @@
 using System;
-using Server;
-using Server.Engines.Craft;
 using System.Collections.Generic;
+using Server.Engines.Craft;
 
 namespace Server.Items
 {
-	public enum PotionEffect
-	{
-		Nightsight,
-		CureLesser,
-		Cure,
-		CureGreater,
-		Agility,
-		AgilityGreater,
-		Strength,
-		StrengthGreater,
-		PoisonLesser,
-		Poison,
-		PoisonGreater,
-		PoisonDeadly,
-		Refresh,
-		RefreshTotal,
-		HealLesser,
-		Heal,
-		HealGreater,
-		ExplosionLesser,
-		Explosion,
-		ExplosionGreater,
-		Conflagration,
-		ConflagrationGreater,
-		MaskOfDeath,		// Mask of Death is not available in OSI but does exist in cliloc files
-		MaskOfDeathGreater,	// included in enumeration for compatability if later enabled by OSI
-		ConfusionBlast,
-		ConfusionBlastGreater,
-		Invisibility,
-		Parasitic,
-		Darkglow,
-	}
+    public enum PotionEffect
+    {
+        Nightsight,
+        CureLesser,
+        Cure,
+        CureGreater,
+        Agility,
+        AgilityGreater,
+        Strength,
+        StrengthGreater,
+        PoisonLesser,
+        Poison,
+        PoisonGreater,
+        PoisonDeadly,
+        Refresh,
+        RefreshTotal,
+        HealLesser,
+        Heal,
+        HealGreater,
+        ExplosionLesser,
+        Explosion,
+        ExplosionGreater,
+        Conflagration,
+        ConflagrationGreater,
+        MaskOfDeath,        // Mask of Death is not available in OSI but does exist in cliloc files
+        MaskOfDeathGreater, // included in enumeration for compatability if later enabled by OSI
+        ConfusionBlast,
+        ConfusionBlastGreater,
+        Invisibility,
+        Parasitic,
+        Darkglow,
+    }
 
-	public abstract class BasePotion : Item, ICraftable, ICommodity
-	{
-		private PotionEffect m_PotionEffect;
+    public abstract class BasePotion : Item, ICraftable, ICommodity
+    {
+        private PotionEffect m_PotionEffect;
 
-		public PotionEffect PotionEffect
-		{
-			get
-			{
-				return m_PotionEffect;
-			}
-			set
-			{
-				m_PotionEffect = value;
-				InvalidateProperties();
-			}
-		}
+        public PotionEffect PotionEffect
+        {
+            get
+            {
+                return m_PotionEffect;
+            }
+            set
+            {
+                m_PotionEffect = value;
+                InvalidateProperties();
+            }
+        }
 
-		int ICommodity.DescriptionNumber { get { return LabelNumber; } }
-		bool ICommodity.IsDeedable { get { return (Core.ML); } }
+        int ICommodity.DescriptionNumber { get { return LabelNumber; } }
+        bool ICommodity.IsDeedable { get { return (Core.ML); } }
 
-		public override int LabelNumber{ get{ return 1041314 + (int)m_PotionEffect; } }
+        public override int LabelNumber { get { return 1041314 + (int)m_PotionEffect; } }
 
-		public BasePotion( int itemID, PotionEffect effect ) : base( itemID )
-		{
-			m_PotionEffect = effect;
+        public BasePotion(int itemID, PotionEffect effect) : base(itemID)
+        {
+            m_PotionEffect = effect;
 
-			Stackable = Core.ML;
-			Weight = 1.0;
-		}
+            Stackable = Core.ML;
+            Weight = 1.0;
+        }
 
-		public BasePotion( Serial serial ) : base( serial )
-		{
-		}
+        public BasePotion(Serial serial) : base(serial)
+        {
+        }
 
-		public virtual bool RequireFreeHand{ get{ return true; } }
+        public virtual bool RequireFreeHand { get { return true; } }
 
-		public static bool HasFreeHand( Mobile m )
-		{
-			Item handOne = m.FindItemOnLayer( Layer.OneHanded );
-			Item handTwo = m.FindItemOnLayer( Layer.TwoHanded );
+        public static bool HasFreeHand(Mobile m)
+        {
+            Item handOne = m.FindItemOnLayer(Layer.OneHanded);
+            Item handTwo = m.FindItemOnLayer(Layer.TwoHanded);
 
-			if ( handTwo is BaseWeapon )
-				handOne = handTwo;
-			if ( handTwo is BaseRanged )
-			{
-				BaseRanged ranged = (BaseRanged) handTwo;
-				
-				if ( ranged.Balanced )
-					return true;
-			}
+            if (handTwo is BaseWeapon)
+                handOne = handTwo;
+            if (handTwo is BaseRanged)
+            {
+                BaseRanged ranged = (BaseRanged)handTwo;
 
-			return ( handOne == null || handTwo == null );
-		}
+                if (ranged.Balanced)
+                    return true;
+            }
 
-		public override void OnDoubleClick( Mobile from )
-		{
-			if ( !Movable )
-				return;
+            return (handOne == null || handTwo == null);
+        }
 
-			if ( from.InRange( this.GetWorldLocation(), 1 ) )
-			{
-				if (!RequireFreeHand || HasFreeHand(from))
-				{
-					if (this is BaseExplosionPotion && Amount > 1)
-					{
-						BasePotion pot = (BasePotion)Activator.CreateInstance(this.GetType());
+        public override void OnDoubleClick(Mobile from)
+        {
+            if (!Movable)
+                return;
 
-						if (pot != null)
-						{
-							Amount--;
+            if (from.InRange(this.GetWorldLocation(), 1))
+            {
+                if (!RequireFreeHand || HasFreeHand(from))
+                {
+                    if (this is BaseExplosionPotion && Amount > 1)
+                    {
+                        BasePotion pot = (BasePotion)Activator.CreateInstance(this.GetType());
 
-							if (from.Backpack != null && !from.Backpack.Deleted)
-							{
-								from.Backpack.DropItem(pot);
-							}
-							else
-							{
-								pot.MoveToWorld(from.Location, from.Map);
-							}
-							pot.Drink( from );
-						}
-					}
-					else
-					{
-						this.Drink( from );
-					}
-				}
-				else
-				{
-					from.SendLocalizedMessage(502172); // You must have a free hand to drink a potion.
-				}
-			}
-			else
-			{
-				from.SendLocalizedMessage( 502138 ); // That is too far away for you to use
-			}
-		}
+                        if (pot != null)
+                        {
+                            Amount--;
 
-		public override void Serialize( GenericWriter writer )
-		{
-			base.Serialize( writer );
+                            if (from.Backpack != null && !from.Backpack.Deleted)
+                            {
+                                from.Backpack.DropItem(pot);
+                            }
+                            else
+                            {
+                                pot.MoveToWorld(from.Location, from.Map);
+                            }
+                            pot.Drink(from);
+                        }
+                    }
+                    else
+                    {
+                        this.Drink(from);
+                    }
+                }
+                else
+                {
+                    from.SendLocalizedMessage(502172); // You must have a free hand to drink a potion.
+                }
+            }
+            else
+            {
+                from.SendLocalizedMessage(502138); // That is too far away for you to use
+            }
+        }
 
-			writer.Write( (int) 1 ); // version
+        public override void Serialize(GenericWriter writer)
+        {
+            base.Serialize(writer);
 
-			writer.Write( (int) m_PotionEffect );
-		}
+            writer.Write((int)1); // version
 
-		public override void Deserialize( GenericReader reader )
-		{
-			base.Deserialize( reader );
+            writer.Write((int)m_PotionEffect);
+        }
 
-			int version = reader.ReadInt();
+        public override void Deserialize(GenericReader reader)
+        {
+            base.Deserialize(reader);
 
-			switch ( version )
-			{
-				case 1:
-				case 0:
-				{
-					m_PotionEffect = (PotionEffect)reader.ReadInt();
-					break;
-				}
-			}
+            int version = reader.ReadInt();
 
-			if( version ==  0 )
-				Stackable = Core.ML;
-		}
+            switch (version)
+            {
+                case 1:
+                case 0:
+                    {
+                        m_PotionEffect = (PotionEffect)reader.ReadInt();
+                        break;
+                    }
+            }
 
-		public abstract void Drink( Mobile from );
+            if (version == 0)
+                Stackable = Core.ML;
+        }
 
-		public static void PlayDrinkEffect( Mobile m )
-		{
-			m.RevealingAction();
+        public abstract void Drink(Mobile from);
 
-			m.PlaySound( 0x2D6 );
+        public static void PlayDrinkEffect(Mobile m)
+        {
+            m.RevealingAction();
 
-			#region Dueling
-			if ( !Engines.ConPVP.DuelContext.IsFreeConsume( m ) )
-				m.AddToBackpack( new Bottle() );
-			#endregion
+            m.PlaySound(0x2D6);
 
-			if ( m.Body.IsHuman && !m.Mounted )
-				m.Animate( 34, 5, 1, true, false, 0 );
-		}
+            #region Dueling
+            if (!Engines.ConPVP.DuelContext.IsFreeConsume(m))
+                m.AddToBackpack(new Bottle());
+            #endregion
 
-		public static int EnhancePotions( Mobile m )
-		{
-			int EP = AosAttributes.GetValue( m, AosAttribute.EnhancePotions );
-			int skillBonus = m.Skills.Alchemy.Fixed / 330 * 10;
+            if (m.Body.IsHuman && !m.Mounted)
+                m.Animate(34, 5, 1, true, false, 0);
+        }
 
-			if ( Core.ML && EP > 50 && m.AccessLevel <= AccessLevel.Player )
-				EP = 50;
+        public static int EnhancePotions(Mobile m)
+        {
+            int EP = AosAttributes.GetValue(m, AosAttribute.EnhancePotions);
+            int skillBonus = m.Skills.Alchemy.Fixed / 330 * 10;
 
-			return ( EP + skillBonus );
-		}
+            if (Core.ML && EP > 50 && m.AccessLevel <= AccessLevel.Player)
+                EP = 50;
 
-		public static TimeSpan Scale( Mobile m, TimeSpan v )
-		{
-			if ( !Core.AOS )
-				return v;
+            return (EP + skillBonus);
+        }
 
-			double scalar = 1.0 + ( 0.01 * EnhancePotions( m ) );
+        public static TimeSpan Scale(Mobile m, TimeSpan v)
+        {
+            if (!Core.AOS)
+                return v;
 
-			return TimeSpan.FromSeconds( v.TotalSeconds * scalar );
-		}
+            double scalar = 1.0 + (0.01 * EnhancePotions(m));
 
-		public static double Scale( Mobile m, double v )
-		{
-			if ( !Core.AOS )
-				return v;
+            return TimeSpan.FromSeconds(v.TotalSeconds * scalar);
+        }
 
-			double scalar = 1.0 + ( 0.01 * EnhancePotions( m ) );
+        public static double Scale(Mobile m, double v)
+        {
+            if (!Core.AOS)
+                return v;
 
-			return v * scalar;
-		}
+            double scalar = 1.0 + (0.01 * EnhancePotions(m));
 
-		public static int Scale( Mobile m, int v )
-		{
-			if ( !Core.AOS )
-				return v;
+            return v * scalar;
+        }
 
-			return AOS.Scale( v, 100 + EnhancePotions( m ) );
-		}
+        public static int Scale(Mobile m, int v)
+        {
+            if (!Core.AOS)
+                return v;
 
-		public override bool StackWith( Mobile from, Item dropped, bool playSound )
-		{
-			if( dropped is BasePotion && ((BasePotion)dropped).m_PotionEffect == m_PotionEffect )
-				return base.StackWith( from, dropped, playSound );
+            return AOS.Scale(v, 100 + EnhancePotions(m));
+        }
 
-			return false;
-		}
+        public override bool StackWith(Mobile from, Item dropped, bool playSound)
+        {
+            if (dropped is BasePotion && ((BasePotion)dropped).m_PotionEffect == m_PotionEffect)
+                return base.StackWith(from, dropped, playSound);
 
-		#region ICraftable Members
+            return false;
+        }
 
-		public int OnCraft( int quality, bool makersMark, Mobile from, CraftSystem craftSystem, Type typeRes, BaseTool tool, CraftItem craftItem, int resHue )
-		{
-			if ( craftSystem is DefAlchemy )
-			{
-				Container pack = from.Backpack;
+        #region ICraftable Members
 
-				if ( pack != null )
-				{
-					if ( (int) PotionEffect >= (int) PotionEffect.Invisibility )
-						return 1;
+        public int OnCraft(int quality, bool makersMark, Mobile from, CraftSystem craftSystem, Type typeRes, BaseTool tool, CraftItem craftItem, int resHue)
+        {
+            if (craftSystem is DefAlchemy)
+            {
+                Container pack = from.Backpack;
 
-					List<PotionKeg> kegs = pack.FindItemsByType<PotionKeg>();
+                if (pack != null)
+                {
+                    if ((int)PotionEffect >= (int)PotionEffect.Invisibility)
+                        return 1;
 
-					for ( int i = 0; i < kegs.Count; ++i )
-					{
-						PotionKeg keg = kegs[i];
+                    List<PotionKeg> kegs = pack.FindItemsByType<PotionKeg>();
 
-						if ( keg == null )
-							continue;
+                    for (int i = 0; i < kegs.Count; ++i)
+                    {
+                        PotionKeg keg = kegs[i];
 
-						if ( keg.Held <= 0 || keg.Held >= 100 )
-							continue;
+                        if (keg == null)
+                            continue;
 
-						if ( keg.Type != PotionEffect )
-							continue;
+                        if (keg.Held <= 0 || keg.Held >= 100)
+                            continue;
 
-						++keg.Held;
+                        if (keg.Type != PotionEffect)
+                            continue;
 
-						Consume();
-						from.AddToBackpack( new Bottle() );
+                        ++keg.Held;
 
-						return -1; // signal placed in keg
-					}
-				}
-			}
+                        Consume();
+                        from.AddToBackpack(new Bottle());
 
-			return 1;
-		}
+                        return -1; // signal placed in keg
+                    }
+                }
+            }
 
-		#endregion
-	}
+            return 1;
+        }
+
+        #endregion
+    }
 }

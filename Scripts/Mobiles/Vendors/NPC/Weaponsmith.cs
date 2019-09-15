@@ -1,117 +1,116 @@
 using System;
 using System.Collections.Generic;
-using Server;
 using Server.Engines.BulkOrders;
 
 namespace Server.Mobiles
 {
-	public class Weaponsmith : BaseVendor
-	{
-		private List<SBInfo> m_SBInfos = new List<SBInfo>();
-		protected override List<SBInfo> SBInfos{ get { return m_SBInfos; } }
+    public class Weaponsmith : BaseVendor
+    {
+        private List<SBInfo> m_SBInfos = new List<SBInfo>();
+        protected override List<SBInfo> SBInfos { get { return m_SBInfos; } }
 
-		[Constructable]
-		public Weaponsmith() : base( "the weaponsmith" )
-		{
-			SetSkill( SkillName.ArmsLore, 64.0, 100.0 );
-			SetSkill( SkillName.Blacksmith, 65.0, 88.0 );
-			SetSkill( SkillName.Fencing, 45.0, 68.0 );
-			SetSkill( SkillName.Macing, 45.0, 68.0 );
-			SetSkill( SkillName.Swords, 45.0, 68.0 );
-			SetSkill( SkillName.Tactics, 36.0, 68.0 );
-		}
+        [Constructable]
+        public Weaponsmith() : base("the weaponsmith")
+        {
+            SetSkill(SkillName.ArmsLore, 64.0, 100.0);
+            SetSkill(SkillName.Blacksmith, 65.0, 88.0);
+            SetSkill(SkillName.Fencing, 45.0, 68.0);
+            SetSkill(SkillName.Macing, 45.0, 68.0);
+            SetSkill(SkillName.Swords, 45.0, 68.0);
+            SetSkill(SkillName.Tactics, 36.0, 68.0);
+        }
 
-		public override void InitSBInfo()
-		{
-			m_SBInfos.Add( new SBWeaponSmith() );
-			
-			if ( IsTokunoVendor )
-				m_SBInfos.Add( new SBSEWeapons() );
-		}
+        public override void InitSBInfo()
+        {
+            m_SBInfos.Add(new SBWeaponSmith());
 
-		public override VendorShoeType ShoeType
-		{
-			get{ return Utility.RandomBool() ? VendorShoeType.Boots : VendorShoeType.ThighBoots; }
-		}
+            if (IsTokunoVendor)
+                m_SBInfos.Add(new SBSEWeapons());
+        }
 
-		public override int GetShoeHue()
-		{
-			return 0;
-		}
+        public override VendorShoeType ShoeType
+        {
+            get { return Utility.RandomBool() ? VendorShoeType.Boots : VendorShoeType.ThighBoots; }
+        }
 
-		public override void InitOutfit()
-		{
-			base.InitOutfit();
+        public override int GetShoeHue()
+        {
+            return 0;
+        }
 
-			AddItem( new Server.Items.HalfApron() );
-		}
+        public override void InitOutfit()
+        {
+            base.InitOutfit();
 
-		#region Bulk Orders
-		public override Item CreateBulkOrder( Mobile from, bool fromContextMenu )
-		{
-			PlayerMobile pm = from as PlayerMobile;
+            AddItem(new Server.Items.HalfApron());
+        }
 
-			if ( pm != null && pm.NextSmithBulkOrder == TimeSpan.Zero && (fromContextMenu || 0.2 > Utility.RandomDouble()) )
-			{
-				double theirSkill = pm.Skills[SkillName.Blacksmith].Base;
+        #region Bulk Orders
+        public override Item CreateBulkOrder(Mobile from, bool fromContextMenu)
+        {
+            PlayerMobile pm = from as PlayerMobile;
 
-				if ( theirSkill >= 70.1 )
-					pm.NextSmithBulkOrder = TimeSpan.FromHours( 6.0 );
-				else if ( theirSkill >= 50.1 )
-					pm.NextSmithBulkOrder = TimeSpan.FromHours( 2.0 );
-				else
-					pm.NextSmithBulkOrder = TimeSpan.FromHours( 1.0 );
+            if (pm != null && pm.NextSmithBulkOrder == TimeSpan.Zero && (fromContextMenu || 0.2 > Utility.RandomDouble()))
+            {
+                double theirSkill = pm.Skills[SkillName.Blacksmith].Base;
 
-				if ( theirSkill >= 70.1 && ((theirSkill - 40.0) / 300.0) > Utility.RandomDouble() )
-					return new LargeSmithBOD();
+                if (theirSkill >= 70.1)
+                    pm.NextSmithBulkOrder = TimeSpan.FromHours(6.0);
+                else if (theirSkill >= 50.1)
+                    pm.NextSmithBulkOrder = TimeSpan.FromHours(2.0);
+                else
+                    pm.NextSmithBulkOrder = TimeSpan.FromHours(1.0);
 
-				return SmallSmithBOD.CreateRandomFor( from );
-			}
+                if (theirSkill >= 70.1 && ((theirSkill - 40.0) / 300.0) > Utility.RandomDouble())
+                    return new LargeSmithBOD();
 
-			return null;
-		}
+                return SmallSmithBOD.CreateRandomFor(from);
+            }
 
-		public override bool IsValidBulkOrder( Item item )
-		{
-			return ( item is SmallSmithBOD || item is LargeSmithBOD );
-		}
+            return null;
+        }
 
-		public override bool SupportsBulkOrders( Mobile from )
-		{
-			return ( from is PlayerMobile && Core.AOS && from.Skills[SkillName.Blacksmith].Base > 0 );
-		}
+        public override bool IsValidBulkOrder(Item item)
+        {
+            return (item is SmallSmithBOD || item is LargeSmithBOD);
+        }
 
-		public override TimeSpan GetNextBulkOrder( Mobile from )
-		{
-			if ( from is PlayerMobile )
-				return ((PlayerMobile)from).NextSmithBulkOrder;
+        public override bool SupportsBulkOrders(Mobile from)
+        {
+            return (from is PlayerMobile && Core.AOS && from.Skills[SkillName.Blacksmith].Base > 0);
+        }
 
-			return TimeSpan.Zero;
-		}
+        public override TimeSpan GetNextBulkOrder(Mobile from)
+        {
+            if (from is PlayerMobile)
+                return ((PlayerMobile)from).NextSmithBulkOrder;
 
-		public override void OnSuccessfulBulkOrderReceive( Mobile from )
-		{
-			if( Core.SE && from is PlayerMobile )
-				((PlayerMobile)from).NextSmithBulkOrder = TimeSpan.Zero;
-		}
-		#endregion
+            return TimeSpan.Zero;
+        }
 
-		public Weaponsmith( Serial serial ) : base( serial )
-		{
-		}
+        public override void OnSuccessfulBulkOrderReceive(Mobile from)
+        {
+            if (Core.SE && from is PlayerMobile)
+                ((PlayerMobile)from).NextSmithBulkOrder = TimeSpan.Zero;
+        }
+        #endregion
 
-		public override void Serialize( GenericWriter writer )
-		{
-			base.Serialize( writer );
+        public Weaponsmith(Serial serial) : base(serial)
+        {
+        }
 
-			writer.Write( (int) 0 ); // version
-		}
+        public override void Serialize(GenericWriter writer)
+        {
+            base.Serialize(writer);
 
-		public override void Deserialize( GenericReader reader )
-		{
-			base.Deserialize( reader );
+            writer.Write((int)0); // version
+        }
 
-			int version = reader.ReadInt();
-		}
-	}
+        public override void Deserialize(GenericReader reader)
+        {
+            base.Deserialize(reader);
+
+            int version = reader.ReadInt();
+        }
+    }
 }

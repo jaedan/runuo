@@ -1,101 +1,100 @@
 using System;
-using System.Collections;
 using System.Collections.Generic;
 
 namespace Server.Spells.Spellweaving
 {
-	public class ThunderstormSpell : ArcanistSpell
-	{
-		private static SpellInfo m_Info = new SpellInfo(
-				"Thunderstorm", "Erelonia",
-				-1
-			);
+    public class ThunderstormSpell : ArcanistSpell
+    {
+        private static SpellInfo m_Info = new SpellInfo(
+                "Thunderstorm", "Erelonia",
+                -1
+            );
 
-		public override TimeSpan CastDelayBase { get { return TimeSpan.FromSeconds( 1.5 ); } }
+        public override TimeSpan CastDelayBase { get { return TimeSpan.FromSeconds(1.5); } }
 
-		public override double RequiredSkill { get { return 10.0; } }
-		public override int RequiredMana { get { return 32; } }
+        public override double RequiredSkill { get { return 10.0; } }
+        public override int RequiredMana { get { return 32; } }
 
-		public ThunderstormSpell( Mobile caster, Item scroll )
-			: base( caster, scroll, m_Info )
-		{
-		}
+        public ThunderstormSpell(Mobile caster, Item scroll)
+            : base(caster, scroll, m_Info)
+        {
+        }
 
-		public override void OnCast()
-		{
-			if( CheckSequence() )
-			{
-				Caster.PlaySound( 0x5CE );
+        public override void OnCast()
+        {
+            if (CheckSequence())
+            {
+                Caster.PlaySound(0x5CE);
 
-				double skill = Caster.Skills[SkillName.Spellweaving].Value;
+                double skill = Caster.Skills[SkillName.Spellweaving].Value;
 
-				int damage = Math.Max( 11, 10 + (int)(skill / 24) ) + FocusLevel;
+                int damage = Math.Max(11, 10 + (int)(skill / 24)) + FocusLevel;
 
-				int sdiBonus = AosAttributes.GetValue( Caster, AosAttribute.SpellDamage );
-						
-				int pvmDamage = damage * ( 100 + sdiBonus );
-				pvmDamage /= 100;
+                int sdiBonus = AosAttributes.GetValue(Caster, AosAttribute.SpellDamage);
 
-				if ( sdiBonus > 15 )
-					sdiBonus = 15;
-						
-				int pvpDamage = damage * ( 100 + sdiBonus );
-				pvpDamage /= 100;
+                int pvmDamage = damage * (100 + sdiBonus);
+                pvmDamage /= 100;
 
-				int range = 2 + FocusLevel;
-				TimeSpan duration = TimeSpan.FromSeconds( 5 + FocusLevel );
+                if (sdiBonus > 15)
+                    sdiBonus = 15;
 
-				List<Mobile> targets = new List<Mobile>();
+                int pvpDamage = damage * (100 + sdiBonus);
+                pvpDamage /= 100;
 
-				foreach( Mobile m in Caster.GetMobilesInRange( range ) )
-				{
-					if( Caster != m && SpellHelper.ValidIndirectTarget( Caster, m ) && Caster.CanBeHarmful( m, false ) && Caster.InLOS( m ) )
-						targets.Add( m );
-				}
+                int range = 2 + FocusLevel;
+                TimeSpan duration = TimeSpan.FromSeconds(5 + FocusLevel);
 
-				for( int i = 0; i < targets.Count; i++ )
-				{
-					Mobile m = targets[i];
+                List<Mobile> targets = new List<Mobile>();
 
-					Caster.DoHarmful( m );
+                foreach (Mobile m in Caster.GetMobilesInRange(range))
+                {
+                    if (Caster != m && SpellHelper.ValidIndirectTarget(Caster, m) && Caster.CanBeHarmful(m, false) && Caster.InLOS(m))
+                        targets.Add(m);
+                }
 
-					Spell oldSpell = m.Spell as Spell;
+                for (int i = 0; i < targets.Count; i++)
+                {
+                    Mobile m = targets[i];
 
-					SpellHelper.Damage( this, m, ( m.Player && Caster.Player ) ? pvpDamage : pvmDamage, 0, 0, 0, 0, 100 );
+                    Caster.DoHarmful(m);
 
-					if( oldSpell != null && oldSpell != m.Spell )
-					{
-						if( !CheckResisted( m ) )
-						{
-							m_Table[m] = Timer.DelayCall<Mobile>( duration, DoExpire, m );
+                    Spell oldSpell = m.Spell as Spell;
 
-							BuffInfo.AddBuff( m, new BuffInfo( BuffIcon.Thunderstorm, 1075800, duration, m, GetCastRecoveryMalus( m ) ) );
-						}
-					}
-				}
-			}
+                    SpellHelper.Damage(this, m, (m.Player && Caster.Player) ? pvpDamage : pvmDamage, 0, 0, 0, 0, 100);
 
-			FinishSequence();
-		}
+                    if (oldSpell != null && oldSpell != m.Spell)
+                    {
+                        if (!CheckResisted(m))
+                        {
+                            m_Table[m] = Timer.DelayCall<Mobile>(duration, DoExpire, m);
 
-		private static Dictionary<Mobile, Timer> m_Table = new Dictionary<Mobile, Timer>();
+                            BuffInfo.AddBuff(m, new BuffInfo(BuffIcon.Thunderstorm, 1075800, duration, m, GetCastRecoveryMalus(m)));
+                        }
+                    }
+                }
+            }
 
-		public static int GetCastRecoveryMalus( Mobile m )
-		{
-			return m_Table.ContainsKey( m ) ? 6 : 0;
-		}
+            FinishSequence();
+        }
 
-		public static void DoExpire( Mobile m )
-		{
-			Timer t;
+        private static Dictionary<Mobile, Timer> m_Table = new Dictionary<Mobile, Timer>();
 
-			if( m_Table.TryGetValue( m, out t ) )
-			{
-				t.Stop();
-				m_Table.Remove( m );
+        public static int GetCastRecoveryMalus(Mobile m)
+        {
+            return m_Table.ContainsKey(m) ? 6 : 0;
+        }
 
-				BuffInfo.RemoveBuff( m, BuffIcon.Thunderstorm );
-			}
-		}
-	}
+        public static void DoExpire(Mobile m)
+        {
+            Timer t;
+
+            if (m_Table.TryGetValue(m, out t))
+            {
+                t.Stop();
+                m_Table.Remove(m);
+
+                BuffInfo.RemoveBuff(m, BuffIcon.Thunderstorm);
+            }
+        }
+    }
 }

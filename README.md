@@ -7,7 +7,7 @@ runuo
 
 RunUO Git Repository
 
-*** 
+***
 RunUO is no longer officially supported by a core team.
 
 If you wish to find support in a wider UO development commuity, visit [ServUO - Ultima Online Emulation](http://www.servuo.com)

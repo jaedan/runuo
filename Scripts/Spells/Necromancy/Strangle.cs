@@ -1,44 +1,42 @@
 using System;
 using System.Collections;
-using Server.Network;
-using Server.Items;
 using Server.Targeting;
 
 namespace Server.Spells.Necromancy
 {
-	public class StrangleSpell : NecromancerSpell
-	{
-		private static SpellInfo m_Info = new SpellInfo(
-				"Strangle", "In Bal Nox",
-				209,
-				9031,
-				Reagent.DaemonBlood,
-				Reagent.NoxCrystal
-			);
+    public class StrangleSpell : NecromancerSpell
+    {
+        private static SpellInfo m_Info = new SpellInfo(
+                "Strangle", "In Bal Nox",
+                209,
+                9031,
+                Reagent.DaemonBlood,
+                Reagent.NoxCrystal
+            );
 
-		public override TimeSpan CastDelayBase { get { return TimeSpan.FromSeconds( 2.0 ); } }
+        public override TimeSpan CastDelayBase { get { return TimeSpan.FromSeconds(2.0); } }
 
-		public override double RequiredSkill{ get{ return 65.0; } }
-		public override int RequiredMana{ get{ return 29; } }
+        public override double RequiredSkill { get { return 65.0; } }
+        public override int RequiredMana { get { return 29; } }
 
-		public StrangleSpell( Mobile caster, Item scroll ) : base( caster, scroll, m_Info )
-		{
-		}
+        public StrangleSpell(Mobile caster, Item scroll) : base(caster, scroll, m_Info)
+        {
+        }
 
-		public override void OnCast()
-		{
-			Caster.Target = new InternalTarget( this );
-		}
+        public override void OnCast()
+        {
+            Caster.Target = new InternalTarget(this);
+        }
 
-		public void Target( Mobile m )
-		{
-			if ( CheckHSequence( m ) )
-			{
-				SpellHelper.Turn( Caster, m );
+        public void Target(Mobile m)
+        {
+            if (CheckHSequence(m))
+            {
+                SpellHelper.Turn(Caster, m);
 
-				//SpellHelper.CheckReflect( (int)this.Circle, Caster, ref m );	//Irrelevent after AoS
+                //SpellHelper.CheckReflect( (int)this.Circle, Caster, ref m );	//Irrelevent after AoS
 
-				/* Temporarily chokes off the air suply of the target with poisonous fumes.
+                /* Temporarily chokes off the air suply of the target with poisonous fumes.
 				 * The target is inflicted with poison damage over time.
 				 * The amount of damage dealt each "hit" is based off of the caster's Spirit Speak skill and the Target's current Stamina.
 				 * The less Stamina the target has, the more damage is done by Strangle.
@@ -52,23 +50,23 @@ namespace Server.Spells.Necromancy
 				 * for a target at 20% Stamina the damage multiplier is 2.6
 				 */
 
-				 if ( m.Spell != null )
-					m.Spell.OnCasterHurt();
-				
-				m.PlaySound( 0x22F );
-				m.FixedParticles( 0x36CB, 1, 9, 9911, 67, 5, EffectLayer.Head );
-				m.FixedParticles( 0x374A, 1, 17, 9502, 1108, 4, (EffectLayer)255 );
+                if (m.Spell != null)
+                    m.Spell.OnCasterHurt();
 
-				if ( !m_Table.Contains( m ) )
-				{
-					Timer t = new InternalTimer( m, Caster );
-					t.Start();
+                m.PlaySound(0x22F);
+                m.FixedParticles(0x36CB, 1, 9, 9911, 67, 5, EffectLayer.Head);
+                m.FixedParticles(0x374A, 1, 17, 9502, 1108, 4, (EffectLayer)255);
 
-					m_Table[m] = t;
-				}
+                if (!m_Table.Contains(m))
+                {
+                    Timer t = new InternalTimer(m, Caster);
+                    t.Start();
 
-				HarmfulSpell( m );
-			}
+                    m_Table[m] = t;
+                }
+
+                HarmfulSpell(m);
+            }
 
             //Calculations for the buff bar
             double spiritlevel = Caster.Skills[SkillName.SpiritSpeak].Value / 10;
@@ -107,135 +105,135 @@ namespace Server.Spells.Necromancy
             TimeSpan t_Duration = TimeSpan.FromSeconds(i_Length);
             BuffInfo.AddBuff(m, new BuffInfo(BuffIcon.Strangle, 1075794, 1075795, t_Duration, m, args.ToString()));
 
-			FinishSequence();
-		}
+            FinishSequence();
+        }
 
-		private static Hashtable m_Table = new Hashtable();
+        private static Hashtable m_Table = new Hashtable();
 
-		public static bool RemoveCurse( Mobile m )
-		{
-			Timer t = (Timer)m_Table[m];
+        public static bool RemoveCurse(Mobile m)
+        {
+            Timer t = (Timer)m_Table[m];
 
-			if ( t == null )
-				return false;
+            if (t == null)
+                return false;
 
-			t.Stop();
-			m.SendLocalizedMessage( 1061687 ); // You can breath normally again.
+            t.Stop();
+            m.SendLocalizedMessage(1061687); // You can breath normally again.
 
-			m_Table.Remove( m );
-			return true;
-		}
+            m_Table.Remove(m);
+            return true;
+        }
 
-		private class InternalTimer : Timer
-		{
-			private Mobile m_Target, m_From;
-			private double m_MinBaseDamage, m_MaxBaseDamage;
+        private class InternalTimer : Timer
+        {
+            private Mobile m_Target, m_From;
+            private double m_MinBaseDamage, m_MaxBaseDamage;
 
-			private DateTime m_NextHit;
-			private int m_HitDelay;
+            private DateTime m_NextHit;
+            private int m_HitDelay;
 
-			private int m_Count, m_MaxCount;
+            private int m_Count, m_MaxCount;
 
-			public InternalTimer( Mobile target, Mobile from ) : base( TimeSpan.FromSeconds( 0.1 ), TimeSpan.FromSeconds( 0.1 ) )
-			{
-				Priority = TimerPriority.FiftyMS;
+            public InternalTimer(Mobile target, Mobile from) : base(TimeSpan.FromSeconds(0.1), TimeSpan.FromSeconds(0.1))
+            {
+                Priority = TimerPriority.FiftyMS;
 
-				m_Target = target;
-				m_From = from;
+                m_Target = target;
+                m_From = from;
 
-				double spiritLevel = from.Skills[SkillName.SpiritSpeak].Value / 10;
+                double spiritLevel = from.Skills[SkillName.SpiritSpeak].Value / 10;
 
-				m_MinBaseDamage = spiritLevel - 2;
-				m_MaxBaseDamage = spiritLevel + 1;
+                m_MinBaseDamage = spiritLevel - 2;
+                m_MaxBaseDamage = spiritLevel + 1;
 
-				m_HitDelay = 5;
-				m_NextHit = DateTime.UtcNow + TimeSpan.FromSeconds( m_HitDelay );
+                m_HitDelay = 5;
+                m_NextHit = DateTime.UtcNow + TimeSpan.FromSeconds(m_HitDelay);
 
-				m_Count = (int)spiritLevel;
+                m_Count = (int)spiritLevel;
 
-				if ( m_Count < 4 )
-					m_Count = 4;
+                if (m_Count < 4)
+                    m_Count = 4;
 
-				m_MaxCount = m_Count;
-			}
+                m_MaxCount = m_Count;
+            }
 
-			protected override void OnTick()
-			{
-				if ( !m_Target.Alive )
-				{
-					m_Table.Remove( m_Target );
-					Stop();
-				}
+            protected override void OnTick()
+            {
+                if (!m_Target.Alive)
+                {
+                    m_Table.Remove(m_Target);
+                    Stop();
+                }
 
-				if ( !m_Target.Alive || DateTime.UtcNow < m_NextHit )
-					return;
+                if (!m_Target.Alive || DateTime.UtcNow < m_NextHit)
+                    return;
 
-				--m_Count;
+                --m_Count;
 
-				if ( m_HitDelay > 1 )
-				{
-					if ( m_MaxCount < 5 )
-					{
-						--m_HitDelay;
-					}
-					else
-					{
-						int delay = (int)(Math.Ceiling( (1.0 + (5 * m_Count)) / m_MaxCount ) );
+                if (m_HitDelay > 1)
+                {
+                    if (m_MaxCount < 5)
+                    {
+                        --m_HitDelay;
+                    }
+                    else
+                    {
+                        int delay = (int)(Math.Ceiling((1.0 + (5 * m_Count)) / m_MaxCount));
 
-						if ( delay <= 5 )
-							m_HitDelay = delay;
-						else
-							m_HitDelay = 5;
-					}
-				}
+                        if (delay <= 5)
+                            m_HitDelay = delay;
+                        else
+                            m_HitDelay = 5;
+                    }
+                }
 
-				if ( m_Count == 0 )
-				{
-					m_Target.SendLocalizedMessage( 1061687 ); // You can breath normally again.
-					m_Table.Remove( m_Target );
-					Stop();
-				}
-				else
-				{
-					m_NextHit = DateTime.UtcNow + TimeSpan.FromSeconds( m_HitDelay );
+                if (m_Count == 0)
+                {
+                    m_Target.SendLocalizedMessage(1061687); // You can breath normally again.
+                    m_Table.Remove(m_Target);
+                    Stop();
+                }
+                else
+                {
+                    m_NextHit = DateTime.UtcNow + TimeSpan.FromSeconds(m_HitDelay);
 
-					double damage = m_MinBaseDamage + (Utility.RandomDouble() * (m_MaxBaseDamage - m_MinBaseDamage));
+                    double damage = m_MinBaseDamage + (Utility.RandomDouble() * (m_MaxBaseDamage - m_MinBaseDamage));
 
-					damage *= (3 - (((double)m_Target.Stam / m_Target.StamMax) * 2));
+                    damage *= (3 - (((double)m_Target.Stam / m_Target.StamMax) * 2));
 
-					if ( damage < 1 )
-						damage = 1;
+                    if (damage < 1)
+                        damage = 1;
 
-					if ( !m_Target.Player )
-						damage *= 1.75;
+                    if (!m_Target.Player)
+                        damage *= 1.75;
 
-					AOS.Damage( m_Target, m_From, (int)damage, 0, 0, 0, 100, 0 );
-					
-					if ( 0.60 <= Utility.RandomDouble() ) // OSI: randomly revealed between first and third damage tick, guessing 60% chance
-						m_Target.RevealingAction();
-				}
-			}
-		}
+                    AOS.Damage(m_Target, m_From, (int)damage, 0, 0, 0, 100, 0);
 
-		private class InternalTarget : Target
-		{
-			private StrangleSpell m_Owner;
+                    if (0.60 <= Utility.RandomDouble()) // OSI: randomly revealed between first and third damage tick, guessing 60% chance
+                        m_Target.RevealingAction();
+                }
+            }
+        }
 
-			public InternalTarget( StrangleSpell owner ) : base( Core.ML ? 10 : 12, false, TargetFlags.Harmful )
-			{
-				m_Owner = owner;
-			}
+        private class InternalTarget : Target
+        {
+            private StrangleSpell m_Owner;
 
-			protected override void OnTarget( Mobile from, object o )
-			{
-				if ( o is Mobile )
-					m_Owner.Target( (Mobile) o );
-			}
+            public InternalTarget(StrangleSpell owner) : base(Core.ML ? 10 : 12, false, TargetFlags.Harmful)
+            {
+                m_Owner = owner;
+            }
 
-			protected override void OnTargetFinish( Mobile from )
-			{
-				m_Owner.FinishSequence();
-			}
-		}
-	}
+            protected override void OnTarget(Mobile from, object o)
+            {
+                if (o is Mobile)
+                    m_Owner.Target((Mobile)o);
+            }
+
+            protected override void OnTargetFinish(Mobile from)
+            {
+                m_Owner.FinishSequence();
+            }
+        }
+    }
 }
