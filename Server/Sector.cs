@@ -1,4 +1,4 @@
-/***************************************************************************
+﻿/***************************************************************************
  *                                 Sector.cs
  *                            -------------------
  *   begin                : May 1, 2002
@@ -33,10 +33,13 @@ namespace Server
         public Region Region { get { return m_Region; } }
         public Rectangle3D Rect { get { return m_Rect; } }
 
+        public LinkedListNode<RegionRect> Node;
+
         public RegionRect(Region region, Rectangle3D rect)
         {
             m_Region = region;
             m_Rect = rect;
+            Node = new LinkedListNode<RegionRect>(this);
         }
 
         public bool Contains(Point3D loc)
@@ -63,20 +66,13 @@ namespace Server
     {
         private int m_X, m_Y;
         private Map m_Owner;
-        private List<Mobile> m_Mobiles;
-        private List<Mobile> m_Players;
-        private List<Item> m_Items;
-        private List<NetState> m_Clients;
-        private List<BaseMulti> m_Multis;
-        private List<RegionRect> m_RegionRects;
         private bool m_Active;
 
-        // TODO: Can we avoid this?
-        private static List<Mobile> m_DefaultMobileList = new List<Mobile>();
-        private static List<Item> m_DefaultItemList = new List<Item>();
-        private static List<NetState> m_DefaultClientList = new List<NetState>();
-        private static List<BaseMulti> m_DefaultMultiList = new List<BaseMulti>();
-        private static List<RegionRect> m_DefaultRectList = new List<RegionRect>();
+        private LinkedList<Mobile> m_Mobiles = new LinkedList<Mobile>();
+        private LinkedList<Item> m_Items = new LinkedList<Item>();
+        private LinkedList<NetState> m_Clients = new LinkedList<NetState>();
+        private LinkedList<BaseMulti> m_Multis = new LinkedList<BaseMulti>();
+        private LinkedList<RegionRect> m_RegionRects = new LinkedList<RegionRect>();
 
         public Sector(int x, int y, Map owner)
         {
@@ -86,103 +82,70 @@ namespace Server
             m_Active = false;
         }
 
-        private void Add<T>(ref List<T> list, T value)
-        {
-            if (list == null)
-            {
-                list = new List<T>();
-            }
-
-            list.Add(value);
-        }
-
-        private void Remove<T>(ref List<T> list, T value)
-        {
-            if (list != null)
-            {
-                list.Remove(value);
-
-                if (list.Count == 0)
-                {
-                    list = null;
-                }
-            }
-        }
-
-        private void Replace<T>(ref List<T> list, T oldValue, T newValue)
-        {
-            if (oldValue != null && newValue != null)
-            {
-                int index = (list != null ? list.IndexOf(oldValue) : -1);
-
-                if (index >= 0)
-                {
-                    list[index] = newValue;
-                }
-                else
-                {
-                    Add(ref list, newValue);
-                }
-            }
-            else if (oldValue != null)
-            {
-                Remove(ref list, oldValue);
-            }
-            else if (newValue != null)
-            {
-                Add(ref list, newValue);
-            }
-        }
-
         public void OnClientChange(NetState oldState, NetState newState)
         {
-            Replace(ref m_Clients, oldState, newState);
+            if (oldState != null)
+            {
+                if (oldState.Node.List == m_Clients)
+                {
+                    m_Clients.Remove(oldState.Node);
+                }
+            }
+
+            if (newState != null)
+            {
+                if (newState.Node.List == null)
+                {
+                    m_Clients.AddLast(newState.Node);
+                }
+            }
         }
 
         public void OnEnter(Item item)
         {
-            Add(ref m_Items, item);
+            if (item.Node.List != null)
+                item.Node.List.Remove(item.Node);
+
+            m_Items.AddLast(item.Node);
         }
 
         public void OnLeave(Item item)
         {
-            Remove(ref m_Items, item);
+            if (item.Node.List == m_Items)
+                m_Items.Remove(item.Node);
         }
 
         public void OnEnter(Mobile mob)
         {
-            Add(ref m_Mobiles, mob);
+            if (mob.Node.List != null)
+                mob.Node.List.Remove(mob.Node);
+
+            m_Mobiles.AddLast(mob.Node);
 
             if (mob.NetState != null)
             {
-                Add(ref m_Clients, mob.NetState);
-            }
-
-            if (mob.Player)
-            {
-                if (m_Players == null)
+                if (m_Clients.Count == 0)
                 {
                     m_Owner.ActivateSectors(m_X, m_Y);
                 }
+                if (mob.NetState.Node.List != null)
+                    mob.NetState.Node.List.Remove(mob.NetState.Node);
 
-                Add(ref m_Players, mob);
+                m_Clients.AddLast(mob.NetState.Node);
             }
         }
 
         public void OnLeave(Mobile mob)
         {
-            Remove(ref m_Mobiles, mob);
+            if (mob.Node.List == m_Mobiles)
+                m_Mobiles.Remove(mob.Node);
 
             if (mob.NetState != null)
             {
-                Remove(ref m_Clients, mob.NetState);
-            }
+                if (mob.NetState.Node.List == m_Clients)
+                    m_Clients.Remove(mob.NetState.Node);
 
-            if (mob.Player && m_Players != null)
-            {
-                Remove(ref m_Players, mob);
-
-                if (m_Players == null)
+                if (m_Clients.Count == 0)
                 {
                     m_Owner.DeactivateSectors(m_X, m_Y);
                 }
@@ -191,30 +154,50 @@ namespace Server
 
         public void OnEnter(Region region, Rectangle3D rect)
         {
-            Add(ref m_RegionRects, new RegionRect(region, rect));
+            RegionRect rr = new RegionRect(region, rect);
 
-            m_RegionRects.Sort();
+            if (rr.Node.List != null)
+                rr.Node.List.Remove(rr.Node);
+
+            var node = m_RegionRects.First;
+
+            while (node != null)
+            {
+                IComparable comp = node.Value as IComparable;
+                if (comp.CompareTo(rr) > 0)
+                {
+                    break;
+                }
+
+                node = node.Next;
+            }
+
+            if (node == null)
+            {
+                m_RegionRects.AddLast(rr.Node);
+            }
+            else
+            {
+                m_RegionRects.AddBefore(node, rr.Node);
+            }
 
             UpdateMobileRegions();
         }
 
         public void OnLeave(Region region)
         {
-            if (m_RegionRects != null)
+            LinkedListNode<RegionRect> node = m_RegionRects.Last;
+
+            while (node != null)
             {
-                for (int i = m_RegionRects.Count - 1; i >= 0; i--)
-                {
-                    RegionRect regRect = m_RegionRects[i];
+                RegionRect rr = node.Value;
 
-                    if (regRect.Region == region)
-                    {
-                        m_RegionRects.RemoveAt(i);
-                    }
-                }
+                node = node.Previous;
 
-                if (m_RegionRects.Count == 0)
+                if (rr.Region == region)
                 {
-                    m_RegionRects = null;
+                    if (rr.Node.List == m_RegionRects)
+                        m_RegionRects.Remove(rr.Node);
                 }
             }
 
@@ -223,25 +206,23 @@ namespace Server
 
         private void UpdateMobileRegions()
         {
-            if (m_Mobiles != null)
-            {
-                List<Mobile> sandbox = new List<Mobile>(m_Mobiles);
+            LinkedListNode<Mobile> node = m_Mobiles.Last;
 
-                foreach (Mobile mob in sandbox)
-                {
-                    mob.UpdateRegion();
-                }
+            while (node != null)
+            {
+                node.Value.UpdateRegion();
+                node = node.Previous;
             }
         }
 
         public void OnMultiEnter(BaseMulti multi)
         {
-            Add(ref m_Multis, multi);
+            m_Multis.AddLast(multi);
         }
 
         public void OnMultiLeave(BaseMulti multi)
         {
-            Remove(ref m_Multis, multi);
+            m_Multis.Remove(multi);
         }
 
         public void Activate()
@@ -250,18 +231,24 @@ namespace Server
             {
                 if (m_Items != null)
                 {
-                    foreach (Item item in m_Items)
+                    var inode = m_Items.Last;
+                    while (inode != null)
                     {
+                        var item = inode.Value;
+                        inode = inode.Previous;
                         item.OnSectorActivate();
                     }
                 }
 
-                if (m_Mobiles != null)
+                var node = m_Mobiles.Last;
+
+                while (node != null)
                 {
-                    foreach (Mobile mob in m_Mobiles)
-                    {
-                        mob.OnSectorActivate();
-                    }
+                    var mob = node.Value;
+
+                    node = node.Previous;
+
+                    mob.OnSectorActivate();
                 }
 
                 m_Active = true;
@@ -272,91 +259,102 @@ namespace Server
         {
             if (Active)
             {
-                if (m_Items != null)
+                if (Items != null)
                 {
-                    foreach (Item item in m_Items)
+                    var inode = m_Items.Last;
+                    while (inode != null)
                     {
+                        var item = inode.Value;
+                        inode = inode.Previous;
                         item.OnSectorDeactivate();
                     }
                 }
 
-                if (m_Mobiles != null)
+                var mnode = m_Mobiles.Last;
+
+                while (mnode != null)
                 {
-                    foreach (Mobile mob in m_Mobiles)
-                    {
-                        mob.OnSectorDeactivate();
-                    }
+                    var mob = mnode.Value;
+
+                    mnode = mnode.Previous;
+
+                    mob.OnSectorDeactivate();
                 }
 
                 m_Active = false;
             }
         }
 
-        public List<RegionRect> RegionRects
+        public IEnumerable<RegionRect> RegionRects
         {
             get
             {
-                if (m_RegionRects == null)
-                    return m_DefaultRectList;
-
                 return m_RegionRects;
             }
         }
 
-        public List<BaseMulti> Multis
+        public IEnumerable<BaseMulti> Multis
         {
             get
             {
-                if (m_Multis == null)
-                    return m_DefaultMultiList;
-
                 return m_Multis;
             }
         }
 
-        public List<Mobile> Mobiles
+        public IEnumerable<Mobile> Mobiles
         {
             get
             {
-                if (m_Mobiles == null)
-                    return m_DefaultMobileList;
-
                 return m_Mobiles;
             }
         }
 
-        public List<Item> Items
+        public IEnumerable<Item> Items
         {
             get
             {
-                if (m_Items == null)
-                    return m_DefaultItemList;
-
                 return m_Items;
             }
         }
 
-        public List<NetState> Clients
+        public IEnumerable<NetState> Clients
         {
             get
             {
-                if (m_Clients == null)
-                    return m_DefaultClientList;
-
                 return m_Clients;
             }
         }
 
-        public List<Mobile> Players
-        {
-            get
-            {
-                if (m_Players == null)
-                    return m_DefaultMobileList;
+        #region Reverse Iterators
 
-                return m_Players;
-            }
+        /* These are only to be used by Map.cs */
+
+        public LinkedListNode<RegionRect> LastRegionRect()
+        {
+            return m_RegionRects.Last;
         }
+
+        public LinkedListNode<BaseMulti> LastMulti()
+        {
+            return m_Multis.Last;
+        }
+
+        public LinkedListNode<Server.Mobile> LastMobile()
+        {
+            return m_Mobiles.Last;
+        }
+
+        public LinkedListNode<Server.Item> LastItem()
+        {
+            return m_Items.Last;
+        }
+
+        public LinkedListNode<NetState> LastClient()
+        {
+            return m_Clients.Last;
+        }
+
+        #endregion
 
         public bool Active
         {

@@ -1,4 +1,4 @@
-/***************************************************************************
+﻿/***************************************************************************
  *                               TileMatrix.cs
  *                            -------------------
  *   begin                : May 1, 2002
@@ -312,22 +312,15 @@ namespace Server
 
             if (multis)
             {
-                IPooledEnumerable<StaticTile[]> eable = m_Owner.GetMultiTilesAt(x, y);
-
-                if (eable == Map.NullEnumerable<StaticTile[]>.Instance)
-                    return tiles[x & 0x7][y & 0x7];
-
                 bool any = false;
 
-                foreach (StaticTile[] multiTiles in eable)
+                foreach (StaticTile[] multiTiles in m_Owner.GetMultiTilesAt(x, y))
                 {
                     if (!any)
                         any = true;
 
                     m_TilesList.AddRange(multiTiles);
                 }
-
-                eable.Free();
 
                 if (!any)
                     return tiles[x & 0x7][y & 0x7];

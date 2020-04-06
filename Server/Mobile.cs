@@ -1,4 +1,4 @@
-/***************************************************************************
+﻿/***************************************************************************
  *                                Mobile.cs
  *                            -------------------
  *   begin                : May 1, 2002
@@ -3176,56 +3176,69 @@ namespace Server
 
                         if (oldSector != newSector)
                         {
-                            for (int i = 0; i < oldSector.Mobiles.Count; ++i)
+                            var mnode = oldSector.LastMobile();
+                            while (mnode != null)
                             {
-                                Mobile m = oldSector.Mobiles[i];
+                                var m = mnode.Value;
+                                mnode = mnode.Previous;
 
                                 if (m != this && m.X == oldX && m.Y == oldY && (m.Z + 15) > oldZ && (oldZ + 15) > m.Z && !m.OnMoveOff(this))
                                     return false;
                             }
 
-                            for (int i = 0; i < oldSector.Items.Count; ++i)
+                            var inode = oldSector.LastItem();
+                            while (inode != null)
                             {
-                                Item item = oldSector.Items[i];
+                                var item = inode.Value;
+                                inode = inode.Previous;
 
                                 if (item.AtWorldPoint(oldX, oldY) && (item.Z == oldZ || ((item.Z + item.ItemData.Height) > oldZ && (oldZ + 15) > item.Z)) && !item.OnMoveOff(this))
                                     return false;
                             }
 
-                            for (int i = 0; i < newSector.Mobiles.Count; ++i)
+                            mnode = newSector.LastMobile();
+                            while (mnode != null)
                             {
-                                Mobile m = newSector.Mobiles[i];
-
+                                var m = mnode.Value;
+                                mnode = mnode.Previous;
                                 if (m.X == x && m.Y == y && (m.Z + 15) > newZ && (newZ + 15) > m.Z && !m.OnMoveOver(this))
                                     return false;
                             }
 
-                            for (int i = 0; i < newSector.Items.Count; ++i)
+                            inode = newSector.LastItem();
+                            while (inode != null)
                             {
-                                Item item = newSector.Items[i];
-
+                                var item = inode.Value;
+                                inode = inode.Previous;
                                 if (item.AtWorldPoint(x, y) && (item.Z == newZ || ((item.Z + item.ItemData.Height) > newZ && (newZ + 15) > item.Z)) && !item.OnMoveOver(this))
                                     return false;
                             }
                         }
+
                         else
                         {
-                            for (int i = 0; i < oldSector.Mobiles.Count; ++i)
+                            var mnode = oldSector.LastMobile();
+                            while (mnode != null)
                             {
-                                Mobile m = oldSector.Mobiles[i];
+                                var m = mnode.Value;
+                                mnode = mnode.Previous;
 
                                 if (m != this && m.X == oldX && m.Y == oldY && (m.Z + 15) > oldZ && (oldZ + 15) > m.Z && !m.OnMoveOff(this))
                                     return false;
+
                                 else if (m.X == x && m.Y == y && (m.Z + 15) > newZ && (newZ + 15) > m.Z && !m.OnMoveOver(this))
                                     return false;
                             }
 
-                            for (int i = 0; i < oldSector.Items.Count; ++i)
+                            var inode = oldSector.LastItem();
+                            while (inode != null)
                             {
-                                Item item = oldSector.Items[i];
+                                var item = inode.Value;
+                                inode = inode.Previous;
 
                                 if (item.AtWorldPoint(oldX, oldY) && (item.Z == oldZ || ((item.Z + item.ItemData.Height) > oldZ && (oldZ + 15) > item.Z)) && !item.OnMoveOff(this))
                                     return false;
+
                                 else if (item.AtWorldPoint(x, y) && (item.Z == newZ || ((item.Z + item.ItemData.Height) > newZ && (newZ + 15) > item.Z)) && !item.OnMoveOver(this))
                                     return false;
                             }
@@ -3298,9 +3311,7 @@ namespace Server
 
             if (m_Map != null)
             {
-                IPooledEnumerable<IEntity> eable = m_Map.GetObjectsInRange(m_Location, Core.GlobalMaxUpdateRange);
-
-                foreach (IEntity o in eable)
+                foreach (IEntity o in m_Map.GetObjectsInRange(m_Location, Core.GlobalMaxUpdateRange))
                 {
                     if (o == this)
                         continue;
@@ -3320,8 +3331,6 @@ namespace Server
                             m_MoveList.Add(item);
                     }
                 }
-
-                eable.Free();
 
                 Packet[][] cache = m_MovingPacketCache;
 
@@ -3996,9 +4005,7 @@ namespace Server
             {
                 Packet animPacket = null;
 
-                IPooledEnumerable<NetState> eable = m_Map.GetClientsInRange(m_Location);
-
-                foreach (NetState state in eable)
+                foreach (NetState state in m_Map.GetClientsInRange(m_Location))
                 {
                     if (state != m_NetState)
                     {
@@ -4015,8 +4022,6 @@ namespace Server
                 }
 
                 Packet.Release(animPacket);
-
-                eable.Free();
             }
 
             Region.OnDeath(this);
@@ -4363,10 +4368,9 @@ namespace Server
 
                             if (m_DragEffects && map != null && (root == null || root is Item))
                             {
-                                IPooledEnumerable<NetState> eable = map.GetClientsInRange(from.Location);
                                 Packet p = null;
 
-                                foreach (NetState ns in eable)
+                                foreach (NetState ns in map.GetClientsInRange(from.Location))
                                 {
                                     if (ns.Mobile != from && ns.Mobile.CanSee(from) && ns.Mobile.InLOS(from) && ns.Mobile.CanSee(root))
                                     {
@@ -4387,8 +4391,6 @@ namespace Server
                                 }
 
                                 Packet.Release(p);
-
-                                eable.Free();
                             }
 
                             Point3D fixLoc = item.Location;
@@ -4503,10 +4505,9 @@ namespace Server
 
                 if (map != null && (root == null || root is Item))
                 {
-                    IPooledEnumerable<NetState> eable = map.GetClientsInRange(m_Location);
                     Packet p = null;
 
-                    foreach (NetState ns in eable)
+                    foreach (NetState ns in map.GetClientsInRange(m_Location))
                     {
                         if (ns.StygianAbyss)
                             continue;
@@ -4530,8 +4531,6 @@ namespace Server
                     }
 
                     Packet.Release(p);
-
-                    eable.Free();
                 }
             }
         }
@@ -4748,7 +4747,7 @@ namespace Server
 
         #region Get*InRange
 
-        public IPooledEnumerable<Item> GetItemsInRange(int range)
+        public IEnumerable<Item> GetItemsInRange(int range)
         {
             Map map = m_Map;
 
@@ -4758,7 +4757,7 @@ namespace Server
             return map.GetItemsInRange(m_Location, range);
         }
 
-        public IPooledEnumerable<IEntity> GetObjectsInRange(int range)
+        public IEnumerable<IEntity> GetObjectsInRange(int range)
         {
             Map map = m_Map;
 
@@ -4768,7 +4767,7 @@ namespace Server
             return map.GetObjectsInRange(m_Location, range);
         }
 
-        public IPooledEnumerable<Mobile> GetMobilesInRange(int range)
+        public IEnumerable<Mobile> GetMobilesInRange(int range)
         {
             Map map = m_Map;
 
@@ -4778,7 +4777,7 @@ namespace Server
             return map.GetMobilesInRange(m_Location, range);
         }
 
-        public IPooledEnumerable<NetState> GetClientsInRange(int range)
+        public IEnumerable<NetState> GetClientsInRange(int range)
         {
             Map map = m_Map;
 
@@ -4840,9 +4839,7 @@ namespace Server
 
             if (m_Map != null)
             {
-                IPooledEnumerable<IEntity> eable = m_Map.GetObjectsInRange(m_Location, range);
-
-                foreach (IEntity o in eable)
+                foreach (IEntity o in m_Map.GetObjectsInRange(m_Location, range))
                 {
                     if (o is Mobile)
                     {
@@ -4877,8 +4874,6 @@ namespace Server
                             AddSpeechItemsFrom(onSpeech, (Container)o);
                     }
                 }
-
-                eable.Free();
 
                 object mutateContext = null;
                 string mutatedText = text;
@@ -5321,12 +5316,10 @@ namespace Server
             if (map == null)
                 return;
 
-            IPooledEnumerable<NetState> eable = map.GetClientsInRange(m_Location);
-
             Packet pNew = null;
             Packet pOld = null;
 
-            foreach (NetState ns in eable)
+            foreach (NetState ns in map.GetClientsInRange(m_Location))
             {
                 if (ns.Mobile.CanSee(this))
                 {
@@ -5349,8 +5342,6 @@ namespace Server
 
             Packet.Release(pNew);
             Packet.Release(pOld);
-
-            eable.Free();
         }
 
         public static bool m_DefaultShowVisibleDamage, m_DefaultCanSeeVisibleDamage;
@@ -6292,9 +6283,7 @@ namespace Server
                 Packet p = null;
                 //Packet pNew = null;
 
-                IPooledEnumerable<NetState> eable = map.GetClientsInRange(m_Location);
-
-                foreach (NetState state in eable)
+                foreach (NetState state in map.GetClientsInRange(m_Location))
                 {
                     if (state.Mobile.CanSee(this))
                     {
@@ -6368,8 +6357,6 @@ namespace Server
 
                 Packet.Release(p);
                 //Packet.Release( pNew );
-
-                eable.Free();
             }
         }
 
@@ -6394,9 +6381,7 @@ namespace Server
             {
                 Packet p = Packet.Acquire(new PlaySound(soundID, this));
 
-                IPooledEnumerable<NetState> eable = m_Map.GetClientsInRange(m_Location);
-
-                foreach (NetState state in eable)
+                foreach (NetState state in m_Map.GetClientsInRange(m_Location))
                 {
                     if (state.Mobile.CanSee(this))
                     {
@@ -6405,8 +6390,6 @@ namespace Server
                 }
 
                 Packet.Release(p);
-
-                eable.Free();
             }
         }
 
@@ -6660,15 +6643,11 @@ namespace Server
         {
             if (m_Map != null)
             {
-                IPooledEnumerable<NetState> eable = m_Map.GetClientsInRange(m_Location);
-
-                foreach (NetState state in eable)
+                foreach (NetState state in m_Map.GetClientsInRange(m_Location))
                 {
                     if (state != m_NetState && (everyone || !state.Mobile.CanSee(this)))
                         state.Send(this.RemovePacket);
                 }
-
-                eable.Free();
             }
         }
 
@@ -6678,9 +6657,7 @@ namespace Server
 
             if (m_Map != null && ns != null)
             {
-                IPooledEnumerable<IEntity> eable = m_Map.GetObjectsInRange(m_Location, Core.GlobalMaxUpdateRange);
-
-                foreach (IEntity o in eable)
+                foreach (IEntity o in m_Map.GetObjectsInRange(m_Location, Core.GlobalMaxUpdateRange))
                 {
                     if (o is Mobile)
                     {
@@ -6697,8 +6674,6 @@ namespace Server
                             ns.Send(item.RemovePacket);
                     }
                 }
-
-                eable.Free();
             }
         }
 
@@ -6928,9 +6903,7 @@ namespace Server
 
             if (m_Map != null && ns != null)
             {
-                IPooledEnumerable<IEntity> eable = m_Map.GetObjectsInRange(m_Location, Core.GlobalMaxUpdateRange);
-
-                foreach (IEntity o in eable)
+                foreach (IEntity o in m_Map.GetObjectsInRange(m_Location, Core.GlobalMaxUpdateRange))
                 {
                     if (o is Item)
                     {
@@ -6969,8 +6942,6 @@ namespace Server
                         }
                     }
                 }
-
-                eable.Free();
             }
         }
 
@@ -8118,9 +8089,7 @@ namespace Server
 
             if (m_Map != null)
             {
-                IPooledEnumerable<NetState> eable = m_Map.GetClientsInRange(m_Location);
-
-                foreach (NetState state in eable)
+                foreach (NetState state in m_Map.GetClientsInRange(m_Location))
                 {
                     if (!state.Mobile.CanSee(this))
                     {
@@ -8142,8 +8111,6 @@ namespace Server
                         }
                     }
                 }
-
-                eable.Free();
             }
         }
 
@@ -9271,9 +9238,7 @@ namespace Server
                 {
                     // First, send a remove message to everyone who can no longer see us. (inOldRange && !inNewRange)
 
-                    IPooledEnumerable<NetState> eable = map.GetClientsInRange(oldLocation);
-
-                    foreach (NetState ns in eable)
+                    foreach (NetState ns in map.GetClientsInRange(oldLocation))
                     {
                         if (ns != m_NetState && !Utility.InUpdateRange(newLocation, ns.Mobile.Location))
                         {
@@ -9281,18 +9246,14 @@ namespace Server
                         }
                     }
 
-                    eable.Free();
-
                     NetState ourState = m_NetState;
 
                     // Check to see if we are attached to a client
                     if (ourState != null)
                     {
-                        IPooledEnumerable<IEntity> eeable = map.GetObjectsInRange(newLocation, Core.GlobalMaxUpdateRange);
-
                         // We are attached to a client, so it's a bit more complex. We need to send new items and people to ourself, and ourself to other clients
 
-                        foreach (IEntity o in eeable)
+                        foreach (IEntity o in map.GetObjectsInRange(newLocation, Core.GlobalMaxUpdateRange))
                         {
                             if (o is Item)
                             {
@@ -9364,15 +9325,11 @@ namespace Server
                                 }
                             }
                         }
-
-                        eeable.Free();
                     }
                     else
                     {
-                        eable = map.GetClientsInRange(newLocation);
-
                         // We're not attached to a client, so simply send an Incoming
-                        foreach (NetState ns in eable)
+                        foreach (NetState ns in map.GetClientsInRange(newLocation))
                         {
                             if (((isTeleport && (!ns.HighSeas || !m_NoMoveHS)) || !Utility.InUpdateRange(oldLocation, ns.Mobile.Location)) && ns.Mobile.CanSee(this))
                             {
@@ -9399,8 +9356,6 @@ namespace Server
                                 }
                             }
                         }
-
-                        eable.Free();
                     }
                 }
 
@@ -9708,9 +9663,7 @@ namespace Server
         {
             if (m_Map != null)
             {
-                IPooledEnumerable<NetState> eable = m_Map.GetClientsInRange(m_Location);
-
-                foreach (NetState state in eable)
+                foreach (NetState state in m_Map.GetClientsInRange(m_Location))
                 {
                     if (state.Mobile.CanSee(this))
                     {
@@ -9737,8 +9690,6 @@ namespace Server
                         }
                     }
                 }
-
-                eable.Free();
             }
         }
 
@@ -10021,6 +9972,12 @@ namespace Server
 
         internal int m_TypeRef;
 
+        #region SectorLists
+
+        public LinkedListNode<Mobile> Node { get; private set; }
+
+        #endregion
+
         public Mobile(Serial serial)
         {
             m_Region = Map.Internal.DefaultRegion;
@@ -10029,6 +9986,7 @@ namespace Server
             m_Aggressed = new List<AggressorInfo>();
             m_NextSkillTime = Core.TickCount;
             m_DamageEntries = new List<DamageEntry>();
+            Node = new LinkedListNode<Mobile>(this);
 
             Type ourType = this.GetType();
             m_TypeRef = World.m_MobileTypes.IndexOf(ourType);
@@ -10044,6 +10002,7 @@ namespace Server
         {
             m_Region = Map.Internal.DefaultRegion;
             m_Serial = Server.Serial.NewMobile;
+            Node = new LinkedListNode<Mobile>(this);
 
             DefaultMobileInit();
 
@@ -10417,9 +10376,7 @@ namespace Server
                 Packet hbpPacket = null;
                 Packet hbyPacket = null;
 
-                IPooledEnumerable<NetState> eable = m.Map.GetClientsInRange(m.m_Location);
-
-                foreach (NetState state in eable)
+                foreach (NetState state in m.Map.GetClientsInRange(m.m_Location))
                 {
                     beholder = state.Mobile;
 
@@ -10550,8 +10507,6 @@ namespace Server
                 Packet.Release(facialhairPacket);
                 Packet.Release(hbpPacket);
                 Packet.Release(hbyPacket);
-
-                eable.Free();
             }
 
             if (sendMoving || sendNonlocalMoving || sendHealthbarPoison || sendHealthbarYellow)
@@ -10708,9 +10663,7 @@ namespace Server
 
                 p.Acquire();
 
-                IPooledEnumerable<NetState> eable = m_Map.GetClientsInRange(m_Location);
-
-                foreach (NetState state in eable)
+                foreach (NetState state in m_Map.GetClientsInRange(m_Location))
                 {
                     if (state.Mobile.CanSee(this) && (noLineOfSight || state.Mobile.InLOS(this)))
                     {
@@ -10719,8 +10672,6 @@ namespace Server
                 }
 
                 Packet.Release(p);
-
-                eable.Free();
             }
         }
 
@@ -10740,9 +10691,7 @@ namespace Server
             {
                 Packet p = Packet.Acquire(new MessageLocalized(m_Serial, Body, type, hue, 3, number, Name, args));
 
-                IPooledEnumerable<NetState> eable = m_Map.GetClientsInRange(m_Location);
-
-                foreach (NetState state in eable)
+                foreach (NetState state in m_Map.GetClientsInRange(m_Location))
                 {
                     if (state.Mobile.CanSee(this) && (noLineOfSight || state.Mobile.InLOS(this)))
                     {
@@ -10751,8 +10700,6 @@ namespace Server
                 }
 
                 Packet.Release(p);
-
-                eable.Free();
             }
         }
 
@@ -10767,9 +10714,7 @@ namespace Server
             {
                 Packet p = Packet.Acquire(new MessageLocalizedAffix(m_Serial, Body, type, hue, 3, number, Name, affixType, affix, args));
 
-                IPooledEnumerable<NetState> eable = m_Map.GetClientsInRange(m_Location);
-
-                foreach (NetState state in eable)
+                foreach (NetState state in m_Map.GetClientsInRange(m_Location))
                 {
                     if (state.Mobile.CanSee(this) && (noLineOfSight || state.Mobile.InLOS(this)))
                     {
@@ -10778,8 +10723,6 @@ namespace Server
                 }
 
                 Packet.Release(p);
-
-                eable.Free();
             }
         }
 
@@ -10844,9 +10787,7 @@ namespace Server
             {
                 Packet p = Packet.Acquire(new MessageLocalized(m_Serial, Body, type, hue, 3, number, Name, args));
 
-                IPooledEnumerable<NetState> eable = m_Map.GetClientsInRange(m_Location);
-
-                foreach (NetState state in eable)
+                foreach (NetState state in m_Map.GetClientsInRange(m_Location))
                 {
                     if (state != m_NetState && state.Mobile.CanSee(this))
                     {
@@ -10855,8 +10796,6 @@ namespace Server
                 }
 
                 Packet.Release(p);
-
-                eable.Free();
             }
         }
 
@@ -10873,9 +10812,7 @@ namespace Server
 
                 p.Acquire();
 
-                IPooledEnumerable<NetState> eable = m_Map.GetClientsInRange(m_Location);
-
-                foreach (NetState state in eable)
+                foreach (NetState state in m_Map.GetClientsInRange(m_Location))
                 {
                     if (state != m_NetState && state.Mobile.CanSee(this))
                     {
@@ -10884,8 +10821,6 @@ namespace Server
                 }
 
                 Packet.Release(p);
-
-                eable.Free();
             }
         }
 

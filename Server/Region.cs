@@ -1,4 +1,4 @@
-/***************************************************************************
+﻿/***************************************************************************
  *                                 Region.cs
  *                            -------------------
  *   begin                : May 1, 2002
@@ -110,12 +110,9 @@ namespace Server
                 return Map.Internal.DefaultRegion;
 
             Sector sector = map.GetSector(p);
-            List<RegionRect> list = sector.RegionRects;
 
-            for (int i = 0; i < list.Count; ++i)
+            foreach (var regRect in sector.RegionRects)
             {
-                RegionRect regRect = list[i];
-
                 if (regRect.Contains(p))
                     return regRect.Region;
             }
@@ -400,44 +397,42 @@ namespace Server
             return false;
         }
 
-        public List<Mobile> GetPlayers()
+        public IEnumerable<Mobile> GetPlayers()
         {
-            List<Mobile> list = new List<Mobile>();
+            if (m_Sectors == null)
+                yield break;
 
-            if (m_Sectors != null)
+            foreach (var sector in m_Sectors)
             {
-                for (int i = 0; i < m_Sectors.Length; i++)
-                {
-                    Sector sector = m_Sectors[i];
+                /* Iterate the list in reverse. New elements are
+                 * always added to the end of the list, so if we start
+                 * at the end and go back to the beginning, then new
+                 * entities created during the loop won't be picked
+                 * up.
+                 */
+                var node = sector.LastClient();
 
-                    foreach (Mobile player in sector.Players)
-                    {
-                        if (player.Region.IsPartOf(this))
-                            list.Add(player);
-                    }
+                while (node != null)
+                {
+                    var o = node.Value;
+
+                    /* Move the node to the previous one here, prior to
+                     * yielding the entity. That way, if the entity removes
+                     * itself from the list the iteration does not break. */
+                    node = node.Previous;
+
+                    if (o != null && o.Mobile != null && !o.Mobile.Deleted && o.Mobile.Region.IsPartOf(this))
+                        yield return o.Mobile;
                 }
             }
-
-            return list;
         }
 
         public int GetPlayerCount()
         {
             int count = 0;
 
-            if (m_Sectors != null)
-            {
-                for (int i = 0; i < m_Sectors.Length; i++)
-                {
-                    Sector sector = m_Sectors[i];
-
-                    foreach (Mobile player in sector.Players)
-                    {
-                        if (player.Region.IsPartOf(this))
-                            count++;
-                    }
-                }
-            }
+            foreach (var player in GetPlayers())
+                count++;
 
             return count;
         }

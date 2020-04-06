@@ -1,4 +1,4 @@
-/***************************************************************************
+﻿/***************************************************************************
  *                                NetState.cs
  *                            -------------------
  *   begin                : May 1, 2002
@@ -75,6 +75,12 @@ namespace Server.Network
         private bool m_BlockAllPackets;
 
         private DateTime m_ConnectedOn;
+
+        #region SectorLists
+
+        public LinkedListNode<NetState> Node;
+
+        #endregion
 
         public DateTime ConnectedOn
         {
@@ -725,6 +731,8 @@ namespace Server.Network
             m_HuePickers = new List<HuePicker>();
             m_Menus = new List<IMenu>();
             m_Trades = new List<SecureTrade>();
+
+            Node = new LinkedListNode<NetState>(this);
 
             m_SendQueue = new SendQueue();
 
