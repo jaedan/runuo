@@ -1,16 +1,20 @@
-/RunUO.exe
-/RunUO.pdb
-/RunUO.vshost.exe
 /Logs/
 /Scripts/bin/
 /Scripts/obj/
 /Scripts/Output
 /Server/bin/
 /Server/obj/
+/obj
+/bin
 
 *.user
 *.suo
 *.vs
+*.dll
+*.obj
+*.exe
+*.pdb
 /.idea
 /Backups
 /Saves
+

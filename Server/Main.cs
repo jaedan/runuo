@@ -1,4 +1,4 @@
-/***************************************************************************
+﻿/***************************************************************************
  *                                  Main.cs
  *                            -------------------
  *   begin                : May 1, 2002
@@ -393,7 +393,7 @@ namespace Server
 
         public static void Set() { m_Signal.Set(); }
 
-        public static void Main(string[] args)
+        public static void Run(string[] args)
         {
             AppDomain.CurrentDomain.UnhandledException += CurrentDomain_UnhandledException;
             AppDomain.CurrentDomain.ProcessExit += CurrentDomain_ProcessExit;

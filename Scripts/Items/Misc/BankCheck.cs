@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Globalization;
 using Server.Accounting;
 using Server.Mobiles;
@@ -77,11 +77,7 @@ namespace Server.Items
             list.Add(1060738, worth); // value: ~1_val~
         }
 
-#if NEWPARENT
         public override void OnAdded(IEntity parent)
-#else
-		public override void OnAdded(object parent)
-#endif
         {
             base.OnAdded(parent);
 

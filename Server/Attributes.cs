@@ -1,4 +1,4 @@
-/***************************************************************************
+﻿/***************************************************************************
  *                               Attributes.cs
  *                            -------------------
  *   begin                : May 1, 2002
@@ -59,17 +59,24 @@ namespace Server
     [AttributeUsage(AttributeTargets.Method)]
     public class CallPriorityAttribute : Attribute
     {
-        private int m_Priority;
-
-        public int Priority
+        public static int GetValue(MethodInfo m)
         {
-            get { return m_Priority; }
-            set { m_Priority = value; }
+            if (m == null)
+                return 0;
+
+            var a = m.GetCustomAttribute<CallPriorityAttribute>(false);
+
+            if (a != null)
+                return a.Priority;
+
+            return 0;
         }
+
+        public int Priority { get; set; }
 
         public CallPriorityAttribute(int priority)
         {
-            m_Priority = priority;
+            Priority = priority;
         }
     }
 

@@ -1,11 +1,9 @@
-using System;
+﻿using System;
 using System.Diagnostics;
 using System.Drawing;
 using System.Drawing.Imaging;
 using System.IO;
-using System.Web.UI;
-using HtmlAttr = System.Web.UI.HtmlTextWriterAttribute;
-using HtmlTag = System.Web.UI.HtmlTextWriterTag;
+using System.Xml;
 
 namespace Server.Engines.Reports
 {
@@ -133,7 +131,9 @@ namespace Server.Engines.Reports
 
             using (StreamWriter op = new StreamWriter(filePath))
             {
-                using (HtmlTextWriter html = new HtmlTextWriter(op, "\t"))
+                var settings = new XmlWriterSettings();
+                settings.Indent = true;
+                using (var html = XmlWriter.Create(op, settings))
                     RenderFull(html);
             }
 
@@ -158,43 +158,44 @@ namespace Server.Engines.Reports
 
         private const string ShardTitle = "Shard";
 
-        public void RenderFull(HtmlTextWriter html)
+        public void RenderFull(XmlWriter html)
         {
-            html.RenderBeginTag(HtmlTag.Html);
+            html.WriteStartElement("html");
 
-            html.RenderBeginTag(HtmlTag.Head);
+            html.WriteStartElement("head");
 
-            html.RenderBeginTag(HtmlTag.Title);
-            html.Write("{0} Statistics", ShardTitle);
-            html.RenderEndTag();
+            html.WriteStartElement("title");
+            html.WriteString($"{ShardTitle} Statistics");
+            html.WriteEndElement();
 
-            html.AddAttribute("rel", "stylesheet");
-            html.AddAttribute(HtmlAttr.Type, "text/css");
-            html.AddAttribute(HtmlAttr.Href, "styles.css");
-            html.RenderBeginTag(HtmlTag.Link);
-            html.RenderEndTag();
 
-            html.RenderEndTag();
+            html.WriteStartElement("a");
+            html.WriteAttributeString("rel", "stylesheet");
+            html.WriteAttributeString("type", "text/css");
+            html.WriteAttributeString("href", "styles.css");
+            html.WriteEndElement();
 
-            html.RenderBeginTag(HtmlTag.Body);
+            html.WriteEndElement();
+
+            html.WriteStartElement("body");
 
             for (int i = 0; i < m_Objects.Count; ++i)
             {
                 RenderDirect(m_Objects[i], html);
-                html.Write("<br><br>");
+                html.WriteString("<br><br>");
             }
 
-            html.RenderBeginTag(HtmlTag.Center);
+            html.WriteStartElement("center");
             TimeZone tz = TimeZone.CurrentTimeZone;
             bool isDaylight = tz.IsDaylightSavingTime(m_TimeStamp);
             TimeSpan utcOffset = tz.GetUtcOffset(m_TimeStamp);
 
-            html.Write("Snapshot taken at {0:d} {0:t}. All times are {1}.", m_TimeStamp, tz.StandardName);
-            html.RenderEndTag();
+            html.WriteString($"Snapshot taken at {m_TimeStamp:d} {m_TimeStamp:t}. All times are {tz.StandardName}.");
+            html.WriteEndElement();
 
-            html.RenderEndTag();
+            html.WriteEndElement();
 
-            html.RenderEndTag();
+            html.WriteEndElement();
         }
 
         public static string SafeFileName(string name)
@@ -208,7 +209,9 @@ namespace Server.Engines.Reports
 
             using (StreamWriter op = new StreamWriter(filePath))
             {
-                using (HtmlTextWriter html = new HtmlTextWriter(op, "\t"))
+                var settings = new XmlWriterSettings();
+                settings.Indent = true;
+                using (var html = XmlWriter.Create(op, settings))
                     RenderSingle(obj, html);
             }
         }
@@ -223,45 +226,45 @@ namespace Server.Engines.Reports
             return "Invalid";
         }
 
-        public void RenderSingle(PersistableObject obj, HtmlTextWriter html)
+        public void RenderSingle(PersistableObject obj, XmlWriter html)
         {
-            html.RenderBeginTag(HtmlTag.Html);
+            html.WriteStartElement("html");
 
-            html.RenderBeginTag(HtmlTag.Head);
+            html.WriteStartElement("head");
 
-            html.RenderBeginTag(HtmlTag.Title);
-            html.Write("{0} Statistics - {1}", ShardTitle, FindNameFrom(obj));
-            html.RenderEndTag();
+            html.WriteStartElement("title");
+            html.WriteValue($"{ShardTitle} Statistics - {FindNameFrom(obj)}");
+            html.WriteEndElement();
 
-            html.AddAttribute("rel", "stylesheet");
-            html.AddAttribute(HtmlAttr.Type, "text/css");
-            html.AddAttribute(HtmlAttr.Href, "styles.css");
-            html.RenderBeginTag(HtmlTag.Link);
-            html.RenderEndTag();
+            html.WriteStartElement("a");
+            html.WriteAttributeString("rel", "stylesheet");
+            html.WriteAttributeString("type", "text/css");
+            html.WriteAttributeString("href", "styles.css");
+            html.WriteEndElement();
 
-            html.RenderEndTag();
+            html.WriteEndElement();
 
-            html.RenderBeginTag(HtmlTag.Body);
+            html.WriteStartElement("body");
 
-            html.RenderBeginTag(HtmlTag.Center);
+            html.WriteStartElement("center");
 
             RenderDirect(obj, html);
 
-            html.Write("<br>");
+            html.WriteValue("<br>");
 
             TimeZone tz = TimeZone.CurrentTimeZone;
             bool isDaylight = tz.IsDaylightSavingTime(m_TimeStamp);
             TimeSpan utcOffset = tz.GetUtcOffset(m_TimeStamp);
 
-            html.Write("Snapshot taken at {0:d} {0:t}. All times are {1}.", m_TimeStamp, tz.StandardName);
-            html.RenderEndTag();
+            html.WriteValue($"Snapshot taken at {m_TimeStamp:d} {m_TimeStamp:t}. All times are {tz.StandardName}.");
+            html.WriteEndElement();
 
-            html.RenderEndTag();
+            html.WriteEndElement();
 
-            html.RenderEndTag();
+            html.WriteEndElement();
         }
 
-        public void RenderDirect(PersistableObject obj, HtmlTextWriter html)
+        public void RenderDirect(PersistableObject obj, XmlWriter html)
         {
             if (obj is Report)
                 RenderReport(obj as Report, html);
@@ -271,7 +274,7 @@ namespace Server.Engines.Reports
                 RenderPieChart(obj as PieChart, html);
         }
 
-        private void RenderPieChart(PieChart chart, HtmlTextWriter html)
+        private void RenderPieChart(PieChart chart, XmlWriter html)
         {
             PieChartRenderer pieChart = new PieChartRenderer(Color.White);
 
@@ -295,67 +298,67 @@ namespace Server.Engines.Reports
             string fileName = chart.FileName + ".png";
             bmp.Save(Path.Combine(m_OutputDirectory, fileName), ImageFormat.Png);
 
-            html.Write("<!-- ");
+            html.WriteValue("<!-- ");
 
-            html.AddAttribute(HtmlAttr.Href, "#");
-            html.AddAttribute(HtmlAttr.Onclick, String.Format("javascript:window.open('{0}.html','ChildWindow','width={1},height={2},resizable=no,status=no,toolbar=no')", SafeFileName(FindNameFrom(chart)), bmp.Width + 30, bmp.Height + 80));
-            html.RenderBeginTag(HtmlTag.A);
-            html.Write(chart.Name);
-            html.RenderEndTag();
+            html.WriteValue(chart.Name);
+            html.WriteAttributeString("href", "#");
+            html.WriteAttributeString("onclick", String.Format("javascript:window.open('{0}.html','ChildWindow','width={1},height={2},resizable=no,status=no,toolbar=no')", SafeFileName(FindNameFrom(chart)), bmp.Width + 30, bmp.Height + 80));
+            html.WriteStartElement("a");
+            html.WriteEndElement();
 
-            html.Write(" -->");
+            html.WriteValue(" -->");
 
-            html.AddAttribute(HtmlAttr.Cellpadding, "0");
-            html.AddAttribute(HtmlAttr.Cellspacing, "0");
-            html.AddAttribute(HtmlAttr.Border, "0");
-            html.RenderBeginTag(HtmlTag.Table);
+            html.WriteStartElement("table");
+            html.WriteAttributeString("cellpadding", "0");
+            html.WriteAttributeString("cellspacing", "0");
+            html.WriteAttributeString("border", "0");
 
-            html.RenderBeginTag(HtmlTag.Tr);
-            html.AddAttribute(HtmlAttr.Class, "tbl-border");
-            html.RenderBeginTag(HtmlTag.Td);
+            html.WriteStartElement("tr");
+            html.WriteStartElement("td");
+            html.WriteAttributeString("class", "tbl-border");
 
-            html.AddAttribute(HtmlAttr.Width, "100%");
-            html.AddAttribute(HtmlAttr.Cellpadding, "4");
-            html.AddAttribute(HtmlAttr.Cellspacing, "1");
-            html.RenderBeginTag(HtmlTag.Table);
+            html.WriteStartElement("table");
+            html.WriteAttributeString("width", "100%");
+            html.WriteAttributeString("cellpadding", "4");
+            html.WriteAttributeString("cellspacing", "1");
 
-            html.RenderBeginTag(HtmlTag.Tr);
+            html.WriteStartElement("tr");
 
-            html.AddAttribute(HtmlAttr.Colspan, "10");
-            html.AddAttribute(HtmlAttr.Width, "100%");
-            html.AddAttribute(HtmlAttr.Align, "center");
-            html.AddAttribute(HtmlAttr.Class, "header");
-            html.RenderBeginTag(HtmlTag.Td);
-            html.Write(chart.Name);
-            html.RenderEndTag();
-            html.RenderEndTag();
+            html.WriteStartElement("td");
+            html.WriteAttributeString("colspan", "10");
+            html.WriteAttributeString("width", "100%");
+            html.WriteAttributeString("align", "center");
+            html.WriteAttributeString("class", "header");
+            html.WriteValue(chart.Name);
+            html.WriteEndElement();
+            html.WriteEndElement();
 
-            html.RenderBeginTag(HtmlTag.Tr);
+            html.WriteStartElement("tr");
 
-            html.AddAttribute(HtmlAttr.Colspan, "10");
-            html.AddAttribute(HtmlAttr.Width, "100%");
-            html.AddAttribute(HtmlAttr.Align, "center");
-            html.AddAttribute(HtmlAttr.Class, "entry");
-            html.RenderBeginTag(HtmlTag.Td);
+            html.WriteStartElement("td");
+            html.WriteAttributeString("colspan", "10");
+            html.WriteAttributeString("width", "100%");
+            html.WriteAttributeString("align", "center");
+            html.WriteAttributeString("class", "entry");
 
-            html.AddAttribute(HtmlAttr.Width, bmp.Width.ToString());
-            html.AddAttribute(HtmlAttr.Height, bmp.Height.ToString());
-            html.AddAttribute(HtmlAttr.Src, fileName);
-            html.RenderBeginTag(HtmlTag.Img);
-            html.RenderEndTag();
+            html.WriteStartElement("img");
+            html.WriteAttributeString("width", bmp.Width.ToString());
+            html.WriteAttributeString("height", bmp.Height.ToString());
+            html.WriteAttributeString("src", fileName);
+            html.WriteEndElement();
 
-            html.RenderEndTag();
-            html.RenderEndTag();
+            html.WriteEndElement();
+            html.WriteEndElement();
 
-            html.RenderEndTag();
-            html.RenderEndTag();
-            html.RenderEndTag();
-            html.RenderEndTag();
+            html.WriteEndElement();
+            html.WriteEndElement();
+            html.WriteEndElement();
+            html.WriteEndElement();
 
             bmp.Dispose();
         }
 
-        private void RenderBarGraph(BarGraph graph, HtmlTextWriter html)
+        private void RenderBarGraph(BarGraph graph, XmlWriter html)
         {
             BarGraphRenderer barGraph = new BarGraphRenderer(Color.White);
 
@@ -390,92 +393,92 @@ namespace Server.Engines.Reports
             string fileName = graph.FileName + ".png";
             bmp.Save(Path.Combine(m_OutputDirectory, fileName), ImageFormat.Png);
 
-            html.Write("<!-- ");
+            html.WriteValue("<!-- ");
 
-            html.AddAttribute(HtmlAttr.Href, "#");
-            html.AddAttribute(HtmlAttr.Onclick, String.Format("javascript:window.open('{0}.html','ChildWindow','width={1},height={2},resizable=no,status=no,toolbar=no')", SafeFileName(FindNameFrom(graph)), bmp.Width + 30, bmp.Height + 80));
-            html.RenderBeginTag(HtmlTag.A);
-            html.Write(graph.Name);
-            html.RenderEndTag();
+            html.WriteStartElement("a");
+            html.WriteAttributeString("href", "#");
+            html.WriteAttributeString("onclick", String.Format("javascript:window.open('{0}.html','ChildWindow','width={1},height={2},resizable=no,status=no,toolbar=no')", SafeFileName(FindNameFrom(graph)), bmp.Width + 30, bmp.Height + 80));
+            html.WriteValue(graph.Name);
+            html.WriteEndElement();
 
-            html.Write(" -->");
+            html.WriteValue(" -->");
 
-            html.AddAttribute(HtmlAttr.Cellpadding, "0");
-            html.AddAttribute(HtmlAttr.Cellspacing, "0");
-            html.AddAttribute(HtmlAttr.Border, "0");
-            html.RenderBeginTag(HtmlTag.Table);
+            html.WriteStartElement("table");
+            html.WriteAttributeString("cellpadding", "0");
+            html.WriteAttributeString("cellspacing", "0");
+            html.WriteAttributeString("border", "0");
 
-            html.RenderBeginTag(HtmlTag.Tr);
-            html.AddAttribute(HtmlAttr.Class, "tbl-border");
-            html.RenderBeginTag(HtmlTag.Td);
+            html.WriteStartElement("tr");
+            html.WriteStartElement("td");
+            html.WriteAttributeString("class", "tbl-border");
 
-            html.AddAttribute(HtmlAttr.Width, "100%");
-            html.AddAttribute(HtmlAttr.Cellpadding, "4");
-            html.AddAttribute(HtmlAttr.Cellspacing, "1");
-            html.RenderBeginTag(HtmlTag.Table);
+            html.WriteStartElement("table");
+            html.WriteAttributeString("width", "100%");
+            html.WriteAttributeString("cellpadding", "4");
+            html.WriteAttributeString("cellspacing", "1");
 
-            html.RenderBeginTag(HtmlTag.Tr);
+            html.WriteStartElement("tr");
 
-            html.AddAttribute(HtmlAttr.Colspan, "10");
-            html.AddAttribute(HtmlAttr.Width, "100%");
-            html.AddAttribute(HtmlAttr.Align, "center");
-            html.AddAttribute(HtmlAttr.Class, "header");
-            html.RenderBeginTag(HtmlTag.Td);
-            html.Write(graph.Name);
-            html.RenderEndTag();
-            html.RenderEndTag();
+            html.WriteStartElement("td");
+            html.WriteAttributeString("colspan", "10");
+            html.WriteAttributeString("width", "100%");
+            html.WriteAttributeString("align", "center");
+            html.WriteAttributeString("class", "header");
+            html.WriteValue(graph.Name);
+            html.WriteEndElement();
+            html.WriteEndElement();
 
-            html.RenderBeginTag(HtmlTag.Tr);
+            html.WriteStartElement("tr");
 
-            html.AddAttribute(HtmlAttr.Colspan, "10");
-            html.AddAttribute(HtmlAttr.Width, "100%");
-            html.AddAttribute(HtmlAttr.Align, "center");
-            html.AddAttribute(HtmlAttr.Class, "entry");
-            html.RenderBeginTag(HtmlTag.Td);
+            html.WriteStartElement("td");
+            html.WriteAttributeString("colspan", "10");
+            html.WriteAttributeString("width", "100%");
+            html.WriteAttributeString("align", "center");
+            html.WriteAttributeString("class", "entry");
 
-            html.AddAttribute(HtmlAttr.Width, bmp.Width.ToString());
-            html.AddAttribute(HtmlAttr.Height, bmp.Height.ToString());
-            html.AddAttribute(HtmlAttr.Src, fileName);
-            html.RenderBeginTag(HtmlTag.Img);
-            html.RenderEndTag();
+            html.WriteStartElement("img");
+            html.WriteAttributeString("width", bmp.Width.ToString());
+            html.WriteAttributeString("height", bmp.Height.ToString());
+            html.WriteAttributeString("src", fileName);
+            html.WriteEndElement();
 
-            html.RenderEndTag();
-            html.RenderEndTag();
+            html.WriteEndElement();
+            html.WriteEndElement();
 
-            html.RenderEndTag();
-            html.RenderEndTag();
-            html.RenderEndTag();
-            html.RenderEndTag();
+            html.WriteEndElement();
+            html.WriteEndElement();
+            html.WriteEndElement();
+            html.WriteEndElement();
 
             bmp.Dispose();
         }
 
-        private void RenderReport(Report report, HtmlTextWriter html)
+        private void RenderReport(Report report, XmlWriter html)
         {
-            html.AddAttribute(HtmlAttr.Width, report.Width);
-            html.AddAttribute(HtmlAttr.Cellpadding, "0");
-            html.AddAttribute(HtmlAttr.Cellspacing, "0");
-            html.AddAttribute(HtmlAttr.Border, "0");
-            html.RenderBeginTag(HtmlTag.Table);
+            html.WriteStartElement("table");
+            html.WriteAttributeString("width", report.Width);
+            html.WriteAttributeString("cellpadding", "0");
+            html.WriteAttributeString("cellspacing", "0");
+            html.WriteAttributeString("border", "0");
 
-            html.RenderBeginTag(HtmlTag.Tr);
-            html.AddAttribute(HtmlAttr.Class, "tbl-border");
-            html.RenderBeginTag(HtmlTag.Td);
+            html.WriteStartElement("tr");
+            html.WriteStartElement("td");
+            html.WriteAttributeString("class", "tbl-border");
 
-            html.AddAttribute(HtmlAttr.Width, "100%");
-            html.AddAttribute(HtmlAttr.Cellpadding, "4");
-            html.AddAttribute(HtmlAttr.Cellspacing, "1");
-            html.RenderBeginTag(HtmlTag.Table);
+            html.WriteStartElement("table");
+            html.WriteAttributeString("width", "100%");
+            html.WriteAttributeString("cellpadding", "4");
+            html.WriteAttributeString("cellspacing", "1");
 
-            html.RenderBeginTag(HtmlTag.Tr);
-            html.AddAttribute(HtmlAttr.Colspan, "10");
-            html.AddAttribute(HtmlAttr.Width, "100%");
-            html.AddAttribute(HtmlAttr.Align, "center");
-            html.AddAttribute(HtmlAttr.Class, "header");
-            html.RenderBeginTag(HtmlTag.Td);
-            html.Write(report.Name);
-            html.RenderEndTag();
-            html.RenderEndTag();
+            html.WriteStartElement("tr");
+            html.WriteStartElement("td");
+            html.WriteAttributeString("colspan", "10");
+            html.WriteAttributeString("width", "100%");
+            html.WriteAttributeString("align", "center");
+            html.WriteAttributeString("class", "header");
+            html.WriteValue(report.Name);
+            html.WriteEndElement();
+            html.WriteEndElement();
 
             bool isNamed = false;
 
@@ -484,55 +487,55 @@ namespace Server.Engines.Reports
 
             if (isNamed)
             {
-                html.RenderBeginTag(HtmlTag.Tr);
+                html.WriteStartElement("tr");
 
                 for (int i = 0; i < report.Columns.Count; ++i)
                 {
                     ReportColumn column = report.Columns[i];
 
-                    html.AddAttribute(HtmlAttr.Class, "header");
-                    html.AddAttribute(HtmlAttr.Width, column.Width);
-                    html.AddAttribute(HtmlAttr.Align, column.Align);
-                    html.RenderBeginTag(HtmlTag.Td);
+                    html.WriteStartElement("td");
+                    html.WriteAttributeString("class", "header");
+                    html.WriteAttributeString("width", column.Width);
+                    html.WriteAttributeString("align", column.Align);
 
-                    html.Write(column.Name);
+                    html.WriteValue(column.Name);
 
-                    html.RenderEndTag();
+                    html.WriteEndElement();
                 }
 
-                html.RenderEndTag();
+                html.WriteEndElement();
             }
 
             for (int i = 0; i < report.Items.Count; ++i)
             {
                 ReportItem item = report.Items[i];
 
-                html.RenderBeginTag(HtmlTag.Tr);
+                html.WriteStartElement("tr");
 
                 for (int j = 0; j < item.Values.Count; ++j)
                 {
+                    html.WriteStartElement("td");
                     if (!isNamed && j == 0)
-                        html.AddAttribute(HtmlAttr.Width, report.Columns[j].Width);
+                        html.WriteAttributeString("width", report.Columns[j].Width);
 
-                    html.AddAttribute(HtmlAttr.Align, report.Columns[j].Align);
-                    html.AddAttribute(HtmlAttr.Class, "entry");
-                    html.RenderBeginTag(HtmlTag.Td);
+                    html.WriteAttributeString("align", report.Columns[j].Align);
+                    html.WriteAttributeString("class", "entry");
 
                     if (item.Values[j].Format == null)
-                        html.Write(item.Values[j].Value);
+                        html.WriteValue(item.Values[j].Value);
                     else
-                        html.Write(int.Parse(item.Values[j].Value).ToString(item.Values[j].Format));
+                        html.WriteValue(int.Parse(item.Values[j].Value).ToString(item.Values[j].Format));
 
-                    html.RenderEndTag();
+                    html.WriteEndElement();
                 }
 
-                html.RenderEndTag();
+                html.WriteEndElement();
             }
 
-            html.RenderEndTag();
-            html.RenderEndTag();
-            html.RenderEndTag();
-            html.RenderEndTag();
+            html.WriteEndElement();
+            html.WriteEndElement();
+            html.WriteEndElement();
+            html.WriteEndElement();
         }
     }
 }

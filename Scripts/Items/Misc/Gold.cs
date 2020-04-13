@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 
 using Server.Accounting;
 
@@ -49,11 +49,7 @@ namespace Server.Items
             UpdateTotal(this, TotalType.Gold, newValue - oldValue);
         }
 
-#if NEWPARENT
         public override void OnAdded(IEntity parent)
-#else
-		public override void OnAdded(object parent)
-#endif
         {
             base.OnAdded(parent);
 

@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Drawing.Imaging;
@@ -360,10 +360,10 @@ namespace Server.Engines.Reports
 
                                     graph.FillPolygon(barBrush, new PointF[] { pts[2], pts[3], pts[6], pts[5] });
 
-                                    using (SolidBrush ltBrsh = new SolidBrush(System.Windows.Forms.ControlPaint.Light(item.ItemColor, 0.1f)))
+                                    using (SolidBrush ltBrsh = new SolidBrush(Color.FromArgb((int)(item.ItemColor.R * 1.1), (int)(item.ItemColor.G * 1.1), (int)(item.ItemColor.B * 1.1))))
                                         graph.FillPolygon(ltBrsh, new PointF[] { pts[0], pts[2], pts[5], pts[4] });
 
-                                    using (SolidBrush drkBrush = new SolidBrush(System.Windows.Forms.ControlPaint.Dark(item.ItemColor, 0.05f)))
+                                    using (SolidBrush drkBrush = new SolidBrush(Color.FromArgb((int)(item.ItemColor.R * 0.05), (int)(item.ItemColor.G * 0.05), (int)(item.ItemColor.B * 0.05))))
                                         graph.FillPolygon(drkBrush, new PointF[] { pts[0], pts[1], pts[3], pts[2] });
 
                                     graph.DrawLine(pen, pts[0], pts[1]);
