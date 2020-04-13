@@ -52,11 +52,7 @@ namespace Server.Network
         private bool m_Seeded;
         private bool m_Running;
 
-#if NewAsyncSockets
-		private SocketAsyncEventArgs m_ReceiveEventArgs, m_SendEventArgs;
-#else
         private AsyncCallback m_OnReceive, m_OnSend;
-#endif
 
         private MessagePump m_MessagePump;
         private ServerInfo[] m_ServerInfo;
@@ -800,10 +796,7 @@ namespace Server.Network
                         if (gram != null && !_sending)
                         {
                             _sending = true;
-#if NewAsyncSockets
-							m_SendEventArgs.SetBuffer( gram.Buffer, 0, gram.Length );
-							Send_Start();
-#else
+
                             try
                             {
                                 m_Socket.BeginSend(gram.Buffer, 0, gram.Length, SocketFlags.None, m_OnSend, m_Socket);
@@ -813,7 +806,6 @@ namespace Server.Network
                                 TraceException(ex);
                                 Dispose(false);
                             }
-#endif
                         }
                     }
                 }
@@ -841,200 +833,6 @@ namespace Server.Network
                 Dispose();
             }
         }
-
-#if NewAsyncSockets
-		public void Start() {
-			m_ReceiveEventArgs = new SocketAsyncEventArgs();
-			m_ReceiveEventArgs.Completed += new EventHandler<SocketAsyncEventArgs>( Receive_Completion );
-			m_ReceiveEventArgs.SetBuffer( m_RecvBuffer, 0, m_RecvBuffer.Length );
-
-			m_SendEventArgs = new SocketAsyncEventArgs();
-			m_SendEventArgs.Completed += new EventHandler<SocketAsyncEventArgs>( Send_Completion );
-
-			m_Running = true;
-
-			if ( m_Socket == null || m_Paused ) {
-				return;
-			}
-
-			Receive_Start();
-		}
-
-		private void Receive_Start()
-		{
-			try {
-				bool result = false;
-
-				do {
-					lock ( m_AsyncLock ) {
-						if ( ( m_AsyncState & ( AsyncState.Pending | AsyncState.Paused ) ) == 0 ) {
-							m_AsyncState |= AsyncState.Pending;
-							result = !m_Socket.ReceiveAsync( m_ReceiveEventArgs );
-
-							if ( result )
-								Receive_Process( m_ReceiveEventArgs );
-						}
-					}
-				} while ( result );
-			} catch ( Exception ex ) {
-				TraceException( ex );
-				Dispose( false );
-			}
-		}
-
-		private void Receive_Completion( object sender, SocketAsyncEventArgs e )
-		{
-			Receive_Process( e );
-
-			if ( !m_Disposing )
-				Receive_Start();
-		}
-
-		private void Receive_Process( SocketAsyncEventArgs e )
-		{
-			int byteCount = e.BytesTransferred;
-
-			if ( e.SocketError != SocketError.Success || byteCount <= 0 ) {
-				Dispose( false );
-				return;
-			} else if ( m_Disposing ) {
-				return;
-			}
-
-			m_NextCheckActivity = Core.TickCount + 90000;
-
-			byte[] buffer = m_RecvBuffer;
-
-			if ( m_Encoder != null )
-				m_Encoder.DecodeIncomingPacket( this, ref buffer, ref byteCount );
-
-			lock ( m_Buffer )
-				m_Buffer.Enqueue( buffer, 0, byteCount );
-
-			m_MessagePump.OnReceive( this );
-
-			lock ( m_AsyncLock ) {
-				m_AsyncState &= ~AsyncState.Pending;
-			}
-		}
-
-		private void Send_Start()
-		{
-			try {
-				bool result = false;
-
-				do {
-					result = !m_Socket.SendAsync( m_SendEventArgs );
-
-					if ( result )
-						Send_Process( m_SendEventArgs );
-				} while ( result );
-			} catch ( Exception ex ) {
-				TraceException( ex );
-				Dispose( false );
-			}
-		}
-
-		private void Send_Completion( object sender, SocketAsyncEventArgs e )
-		{
-			Send_Process( e );
-
-			if ( m_Disposing )
-				return;
-
-			if ( m_CoalesceSleep >= 0 ) {
-				Thread.Sleep( m_CoalesceSleep );
-			}
-
-			SendQueue.Gram gram;
-
-			lock ( m_SendQueue ) {
-				gram = m_SendQueue.Dequeue();
-
-				if (gram == null && m_SendQueue.IsFlushReady)
-					gram = m_SendQueue.CheckFlushReady();
-			}
-
-			if ( gram != null ) {
-				m_SendEventArgs.SetBuffer( gram.Buffer, 0, gram.Length );
-				Send_Start();
-			} else {
-				lock (_sendL)
-					_sending = false;
-			}
-		}
-
-		private void Send_Process( SocketAsyncEventArgs e )
-		{
-			int bytes = e.BytesTransferred;
-
-			if ( e.SocketError != SocketError.Success || bytes <= 0 ) {
-				Dispose( false );
-				return;
-			}
-
-			m_NextCheckActivity = Core.TickCount + 90000;
-		}
-
-		public static void Pause() {
-			m_Paused = true;
-
-			for ( int i = 0; i < m_Instances.Count; ++i ) {
-				NetState ns = m_Instances[i];
-
-				lock ( ns.m_AsyncLock ) {
-					ns.m_AsyncState |= AsyncState.Paused;
-				}
-			}
-		}
-
-		public static void Resume() {
-			m_Paused = false;
-
-			for ( int i = 0; i < m_Instances.Count; ++i ) {
-				NetState ns = m_Instances[i];
-
-				if ( ns.m_Socket == null ) {
-					continue;
-				}
-
-				lock ( ns.m_AsyncLock ) {
-					ns.m_AsyncState &= ~AsyncState.Paused;
-
-					if ( ( ns.m_AsyncState & AsyncState.Pending ) == 0 )
-						ns.Receive_Start();
-				}
-			}
-		}
-
-		public bool Flush() {
-			if ( m_Socket == null )
-					return false;
-
-			lock (_sendL) {
-				if (_sending)
-					return false;
-
-				SendQueue.Gram gram;
-
-				lock ( m_SendQueue ) {
-					if (!m_SendQueue.IsFlushReady)
-						return false;
-
-					gram = m_SendQueue.CheckFlushReady();
-				}
-
-				if ( gram != null ) {
-					_sending = true;
-					m_SendEventArgs.SetBuffer( gram.Buffer, 0, gram.Length );
-					Send_Start();
-				}
-			}
-
-			return false;
-		}
-
-#else
 
         public void Start()
         {
@@ -1262,7 +1060,6 @@ namespace Server.Network
 
             return false;
         }
-#endif
 
         public PacketHandler GetHandler(int packetID)
         {
@@ -1395,13 +1192,8 @@ namespace Server.Network
             m_Buffer = null;
             m_RecvBuffer = null;
 
-#if NewAsyncSockets
-			m_ReceiveEventArgs = null;
-			m_SendEventArgs = null;
-#else
             m_OnReceive = null;
             m_OnSend = null;
-#endif
 
             m_Running = false;
 
