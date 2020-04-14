@@ -1,11 +1,8 @@
 /Logs/
-/Scripts/bin/
 /Scripts/obj/
-/Scripts/Output
-/Server/bin/
 /Server/obj/
-/Application/bin/
 /Application/obj/
+/Server.Tests/obj/
 /obj
 /bin
 
