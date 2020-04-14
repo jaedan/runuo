@@ -4,6 +4,8 @@
 /Scripts/Output
 /Server/bin/
 /Server/obj/
+/Application/bin/
+/Application/obj/
 /obj
 /bin
 
@@ -14,6 +16,7 @@
 *.obj
 *.exe
 *.pdb
+*.json
 /.idea
 /Backups
 /Saves

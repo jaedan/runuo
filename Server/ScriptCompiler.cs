@@ -95,10 +95,7 @@ namespace Server
 
             Console.Write("Scripts: Compiling C# scripts...");
 
-#if !NETCOREAPP
             assemblies.Add(Assembly.LoadFrom("Scripts.dll"));
-#endif
-
             assemblies.Add(typeof(Server.ScriptCompiler).Assembly);
 
             Console.WriteLine("done (cached)");
